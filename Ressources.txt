@@ -1,0 +1,13 @@
+Ressources : 
+
+https://stackoverflow.com
+https://www.anaconda.com
+https://pycaret.gitbook.io/docs/get-started/quickstart
+https://www.acunetix.com
+https://portswigger.net
+https://code.visualstudio.com/learn
+
+
+
+
+A noter : C'est pas obligatoire monsieur d'installer BurpSuite et Et Acunetix car vous pouvez trouver dans le répertoire les datasets déja générés 

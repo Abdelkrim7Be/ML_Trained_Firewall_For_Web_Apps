@@ -1,0 +1,6 @@
+L'éxecution du pare-feu (WAF):
+1- télécharger anaconda et créer une environement .
+2- télécharger jupyter notebook .
+3- télécharger et installer pycaret dans l'environement crée dans anaconda .
+4- copier les notebooks et les coller dans C:\Users\VotreUtilisateur .
+5- lancer les notebooks .

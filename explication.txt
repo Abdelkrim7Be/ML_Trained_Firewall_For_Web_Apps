@@ -1,0 +1,16 @@
+J'aimerais vous apporter quelques clarifications concernant le projet réalisé. 
+Il s'agit d'un pare-feu pour applications web, entraîné par machine learning, qui a pour but de détecter les attaques de type SQL Injection.
+ Pour entraîner le modèle, nous avons utilisé deux notebooks en exploitant un jeu de données composé d'environ 45 000 requêtes, à la fois 
+bénignes et malveillantes.
+
+Le modèle que nous avons créé a été intégré dans un proxy IPS (Intrusion Prevention System) (2eme notebook) qui écoute le localhost sur le port 8090. 
+Veuillez noter que nous n'avons pas pu tester le fonctionnement du proxy dans un environnement réel (un vrai serveur web) , 
+mais uniquement en utilisant le localhost.
+
+Il est important que vous modifiez les chemins d'accès aux jeux de données en fonction de l'endroit où vous les avez déposés. De plus, 
+pour installer Pycaret, vous devez également installer toutes les autres dépendances qui sont répertoriées dans le fichier "Pycaret_requirements.txt".
+ Veuillez suivre le guide d'installation détaillé qui se trouve dans le fichier "Guide_installation.txt".
+
+Pour toute référence aux installations ou aux liens nécessaires, veuillez vous référer au fichier "Ressources.txt" qui contient 
+toutes les informations pertinentes. Tous ces fichiers vous ont été fournis ce matin quand je vous ai transféré le dossier regroupant tous ce qui est 
+en relation avec le projet.
