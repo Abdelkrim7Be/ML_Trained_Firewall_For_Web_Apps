@@ -89,6 +89,10 @@ def request_text(method: str, path: str, query: str, body: str) -> tuple[str, in
     decoded_query, d2 = decode(query)
     decoded_body, d3 = decode(body)
 
-    joined = " ".join(part for part in (method, decoded_path, decoded_query, decoded_body) if part)
+    # Joined on newlines rather than spaces: a space separator would inject a
+    # space into every single request, which silently breaks any space-counting
+    # feature -- and the v0 rule baseline, which flags a request the moment it
+    # sees one space, would then flag 100% of traffic.
+    joined = "\n".join(part for part in (method, decoded_path, decoded_query, decoded_body) if part)
     joined = strip_sql_comments(joined)
     return joined.lower(), max(d1, d2, d3)

@@ -35,7 +35,7 @@ def test_sql_comment_stripping():
 
 def test_request_text_is_lowercased_and_joined():
     text, depth = request_text("GET", "/search", "q=%3Cscript%3E", "")
-    assert text == "get /search q=<script>"
+    assert text == "get\n/search\nq=<script>"
     assert depth == 1
 
 
