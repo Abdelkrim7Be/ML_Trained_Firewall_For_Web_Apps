@@ -79,3 +79,9 @@ pylint
 
 # My settings
 settings/
+
+# Project data + artifacts
+data/raw/
+data/processed/
+models/*.joblib
+.venv/
