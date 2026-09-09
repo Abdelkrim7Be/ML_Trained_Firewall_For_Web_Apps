@@ -87,7 +87,6 @@ def logistic_model() -> Pipeline:
                     class_weight="balanced",
                     max_iter=2000,
                     C=4.0,
-                    n_jobs=-1,
                 ),
             ),
         ]
