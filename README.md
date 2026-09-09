@@ -38,7 +38,7 @@ character count, and each is handled before features are computed:
 |---|---|---|
 | `%2527%2520OR%25201%3D1` | no quote | `' OR 1=1` |
 | `&#60;script&#62;` | no angle bracket | `<script>` |
-| `<img src=x>` | no angle bracket | `<img src=x>` |
+| `\u003cimg src=x\u003e` | no angle bracket | `<img src=x>` |
 | `un/**/ion sel/**/ect` | no keyword | `union select` |
 | `＜script＞` (fullwidth) | no angle bracket | `<script>` |
 
