@@ -101,7 +101,10 @@ def main() -> None:
         print(
             f"  macro_f1={res['macro_f1']}  pr_auc={res['binary_pr_auc']}  "
             f"sqli_recall={pc['sqli']['recall']}  xss_recall={pc['xss']['recall']}  "
-            f"recall@0.1%fpr={at['recall']}  {predict_ms:.3f} ms/req\n"
+            # Always print the FPR actually achieved. A model whose scores are
+            # binary cannot hit a 0.1% budget at all, and printing recall alone
+            # would hide that it is blocking half of all legitimate traffic.
+            f"recall={at['recall']}@fpr={at['fpr']}  {predict_ms:.3f} ms/req\n"
         )
 
     # --- final scoring of the shipping model, on data touched once -------------

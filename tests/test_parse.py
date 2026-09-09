@@ -37,7 +37,7 @@ def test_parses_every_block(corpus):
 
 
 def test_post_fields(corpus):
-    req = list(parse_file(corpus))[0]
+    req = next(iter(parse_file(corpus)))
     assert req.request_id == "42"
     assert req.label == "SqlInjection"
     assert req.method == "POST"
