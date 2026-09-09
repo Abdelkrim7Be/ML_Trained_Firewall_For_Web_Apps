@@ -9,15 +9,15 @@ import joblib
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
-import pandas as pd  # noqa: E402
-import seaborn as sns  # noqa: E402
-from sklearn.metrics import precision_recall_curve  # noqa: E402
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from sklearn.metrics import precision_recall_curve
 
-from mlwaf.features import build_matrix  # noqa: E402
-from mlwaf.model import CLASSES, attack_score  # noqa: E402
-from mlwaf.train import SEED, _split  # noqa: E402
+from mlwaf.features import build_matrix
+from mlwaf.model import CLASSES, attack_score
+from mlwaf.train import _split
 
 REPORTS = Path("reports")
 

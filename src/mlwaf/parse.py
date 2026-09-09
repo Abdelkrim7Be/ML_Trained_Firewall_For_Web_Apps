@@ -16,9 +16,9 @@ Both ECML/PKDD and CSIC ship in the same block format::
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterator
 
 START_RE = re.compile(r"^Start - Id:\s*(\S+)")
 END_RE = re.compile(r"^End - Id:")
