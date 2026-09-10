@@ -117,3 +117,108 @@ This finding is the argument for every conservative choice in the firewall:
   on `/users/42/profile` is the n-gram `users`, which says the whole story out loud.
 
 A firewall that could not explain itself would have shipped this quietly.
+
+
+---
+
+# What the second round of end to end testing found
+
+The first round tested whether the model's verdicts reach the origin correctly.
+The second attacked the firewall itself, pushed protocol edge cases, and ran it
+under sustained load.
+
+## The control plane had no authentication
+
+The proxy and the console share a port. That is a deliberate design choice, one
+process and one thing to deploy, but it means every client of the protected
+application could also reach `/_waf`. There was no token, so:
+
+```
+POST /_waf/mode {"mode": "detect"}     ->  200
+GET  /item?id=1' UNION SELECT ...      ->  200   the firewall is now off
+```
+
+Disabling the firewall was a single unauthenticated request, which is a far
+cheaper attack than evading the classifier. **Fixed.** Everything under `/_waf`
+now requires a token except liveness and readiness, which orchestrators have to be
+able to poll. `WAF_ADMIN_TOKEN` sets it; if it is unset one is generated at
+startup and written to the log so a local run still works. The comparison is
+constant time so a wrong token cannot be discovered a character at a time.
+
+Asserted in `test_hardening.py::test_control_plane_rejects_unauthenticated_callers`
+and `::test_disabling_the_firewall_requires_the_token`.
+
+## Padding a query with junk parameters evades the model
+
+The payload is untouched. Only the number of unrelated parameters around it
+changes:
+
+| Padding parameters | Score | Verdict |
+|---|---|---|
+| 0 | 1.000 | refused |
+| 100 | 0.9997 | refused |
+| 140 | 0.998 | refused |
+| 200 | 0.928 | **allowed** |
+| 400 | 0.892 | **allowed** |
+
+The tipping point is around 150 parameters.
+
+Padding with prose instead does not work. Five thousand characters of filler
+leaves the score at 1.000. That contrast identifies the mechanism: each new
+parameter name contributes fresh character n-grams, and the vectoriser's
+normalisation spreads the document's weight across all of them, so the attack's
+own n-grams lose relative weight. Repeated text adds length without adding
+distinct n-grams.
+
+The fix is not a threshold change. It is to score each parameter value on its own
+as well as the request as a whole, and take the maximum, so a payload cannot be
+diluted by things sitting next to it. That is a model serving change and is not
+implemented here.
+
+Asserted in `test_hardening.py::test_heavy_parameter_padding_evades_this_model`.
+
+## Scoring was blocking the event loop
+
+`engine.decide` is synchronous CPU work and was being called directly from the
+async request handler, so every request froze the event loop for the duration of
+scoring. Concurrent traffic queued behind it. **Fixed** by moving it to a worker
+thread, which genuinely overlaps because numpy and LightGBM release the GIL for
+the expensive parts.
+
+## Throughput ceiling: roughly 80 requests per second per process
+
+Measured with connection reuse against a warmed instance:
+
+| Concurrent clients | Throughput | p50 | p99 |
+|---|---|---|---|
+| 1 | 65 rps | 15 ms | 20 ms |
+| 4 | 81 rps | 49 ms | 61 ms |
+| 12 | 83 rps | 131 ms | 1231 ms |
+| 24 | 57 rps | 188 ms | 2192 ms |
+
+Throughput is flat past four concurrent clients and latency degrades sharply
+after that, which is the GIL: scoring is Python and Cython heavy and does not
+parallelise across threads within one process.
+
+Server side scoring stays around 8 ms throughout. The gap between that and the
+end to end latency at high concurrency is queueing, not the model.
+
+**What this means for deployment.** One process serves roughly 80 requests per
+second. Past that, run several behind a load balancer; SQLite in WAL mode tolerates
+multiple writers. The catch is that the console's live stream and the decision
+cache are per process, so each console would see only the traffic its own worker
+handled. Fixing that properly means moving the event bus and the cache out of
+process, which is beyond what this project is demonstrating.
+
+These numbers were measured on a machine with a load average around 20 from
+unrelated work, so treat them as a floor.
+
+## A note on how the first attempt at this suite was wrong
+
+The load tests originally created a new HTTP client for every request. That
+measures TCP and TLS setup rather than the firewall, capped throughput at about a
+fifth of the real figure, and produced read timeouts that looked like a server
+defect. The fixture now shares a pooled client. It is worth recording because the
+failure mode was convincing: a benchmark that is wrong in this direction makes a
+healthy system look broken, and the temptation is to go and optimise the wrong
+thing.

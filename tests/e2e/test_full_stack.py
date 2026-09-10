@@ -13,6 +13,8 @@ from urllib.parse import quote
 import httpx
 import pytest
 
+from .conftest import AUTH
+
 # --- payloads ---------------------------------------------------------------
 # Split by what the model actually does, not by what we would like it to do.
 # Locking in the misses is deliberate: it makes a regression visible in either
@@ -219,13 +221,13 @@ def test_sse_delivers_decisions_as_they_happen(waf):
     received: list[dict] = []
 
     with (
-        httpx.Client(base_url=waf.url, timeout=20.0) as c,
+        httpx.Client(base_url=waf.url, timeout=20.0, headers=AUTH) as c,
         c.stream("GET", "/_waf/stream") as stream,
     ):
         lines = stream.iter_lines()
         next(lines)  # the ": connected" preamble
 
-        with httpx.Client(base_url=waf.url, timeout=10.0) as probe:
+        with httpx.Client(base_url=waf.url, timeout=10.0, headers=AUTH) as probe:
             probe.get("/item?id=" + quote("1' UNION SELECT password FROM users--"))
 
         deadline = time.time() + 15
@@ -308,7 +310,7 @@ def test_concurrent_traffic_is_handled_correctly(waf):
     benign = [f"/api/items?id={i}&q=sample{i}" for i in range(40)]
 
     def fetch(path: str) -> tuple[str, int]:
-        with httpx.Client(base_url=waf.url, timeout=30.0) as c:
+        with httpx.Client(base_url=waf.url, timeout=30.0, headers=AUTH) as c:
             return path, c.get(path).status_code
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=16) as pool:
@@ -323,7 +325,7 @@ def test_throughput_and_latency_are_sane(waf):
     paths = [f"/api/load?id={i}&q=value{i}" for i in range(150)]
 
     def fetch(path):
-        with httpx.Client(base_url=waf.url, timeout=30.0) as c:
+        with httpx.Client(base_url=waf.url, timeout=30.0, headers=AUTH) as c:
             return c.get(path).status_code
 
     started = time.perf_counter()
@@ -332,7 +334,7 @@ def test_throughput_and_latency_are_sane(waf):
     elapsed = time.perf_counter() - started
 
     assert all(c == 200 for c in codes)
-    with httpx.Client(base_url=waf.url, timeout=20.0) as c:
+    with httpx.Client(base_url=waf.url, timeout=20.0, headers=AUTH) as c:
         summary = c.get("/_waf/status").json()["summary"]
 
     print(f"\n  {len(paths)} requests in {elapsed:.2f}s "
@@ -344,7 +346,7 @@ def test_throughput_and_latency_are_sane(waf):
 
 def test_repeat_requests_hit_the_cache(waf):
     path = "/api/cacheable?id=constant"
-    with httpx.Client(base_url=waf.url, timeout=20.0) as c:
+    with httpx.Client(base_url=waf.url, timeout=20.0, headers=AUTH) as c:
         before = c.get("/_waf/status").json()["engine"]["cached"]
         for _ in range(10):
             c.get(path)
@@ -359,7 +361,7 @@ def test_oversized_bodies_are_forwarded_unscored(origin, waf, tmp_path_factory):
     small = Waf(origin.url, db, WAF_MAX_BODY_BYTES=128).start()
     try:
         origin.clear()
-        with httpx.Client(base_url=small.url, timeout=20.0) as c:
+        with httpx.Client(base_url=small.url, timeout=20.0, headers=AUTH) as c:
             r = c.post("/upload", content="x" * 4096)
             assert r.status_code == 200
             row = c.get("/_waf/decisions").json()["decisions"][0]
@@ -377,7 +379,7 @@ def test_dead_origin_becomes_502_not_a_crash(origin, tmp_path_factory):
     db = tmp_path_factory.mktemp("waf-dead") / "waf.db"
     dead = Waf(f"http://127.0.0.1:{free_port()}", db).start()
     try:
-        with httpx.Client(base_url=dead.url, timeout=20.0) as c:
+        with httpx.Client(base_url=dead.url, timeout=20.0, headers=AUTH) as c:
             assert c.get("/anything").status_code == 502
             # The firewall itself is still healthy and still refuses attacks.
             assert c.get("/_waf/healthz").status_code == 200
@@ -394,7 +396,7 @@ def test_decisions_survive_a_restart(origin, tmp_path_factory):
 
     first = Waf(origin.url, db).start()
     try:
-        with httpx.Client(base_url=first.url, timeout=20.0) as c:
+        with httpx.Client(base_url=first.url, timeout=20.0, headers=AUTH) as c:
             c.get("/item?id=" + quote("1' UNION SELECT password FROM users--"))
             before = c.get("/_waf/decisions").json()["decisions"]
         assert before
@@ -403,7 +405,7 @@ def test_decisions_survive_a_restart(origin, tmp_path_factory):
 
     second = Waf(origin.url, db).start()
     try:
-        with httpx.Client(base_url=second.url, timeout=20.0) as c:
+        with httpx.Client(base_url=second.url, timeout=20.0, headers=AUTH) as c:
             after = c.get("/_waf/decisions").json()["decisions"]
         assert len(after) >= len(before)
         assert after[0]["explanation"]["decode_trace"]
@@ -416,7 +418,7 @@ def test_graceful_shutdown_is_clean(origin, tmp_path_factory):
 
     db = tmp_path_factory.mktemp("waf-shutdown") / "waf.db"
     w = Waf(origin.url, db).start()
-    with httpx.Client(base_url=w.url, timeout=20.0) as c:
+    with httpx.Client(base_url=w.url, timeout=20.0, headers=AUTH) as c:
         c.get("/api/thing")
 
     w.proc.terminate()
@@ -434,7 +436,7 @@ def test_logs_are_structured_json(origin, tmp_path_factory):
 
     db = tmp_path_factory.mktemp("waf-logs") / "waf.db"
     w = Waf(origin.url, db).start()
-    with httpx.Client(base_url=w.url, timeout=20.0) as c:
+    with httpx.Client(base_url=w.url, timeout=20.0, headers=AUTH) as c:
         c.get("/item?id=" + quote("1' UNION SELECT password FROM users--"))
     time.sleep(0.5)
     w.proc.terminate()

@@ -68,6 +68,19 @@ class Settings(BaseSettings):
     # --- model ---------------------------------------------------------------
     model_path: str = "models/model.joblib"
 
+    # --- control plane access ------------------------------------------------
+    # The console and its API share a port with the proxy, so anything that can
+    # reach the protected site can also reach /_waf. Without a token, switching
+    # the firewall off is a single unauthenticated POST, which is a much cheaper
+    # attack than evading the model. Left unset, a token is generated at startup
+    # and written to the log so a local demo still works.
+    admin_token: str | None = None
+    metrics_public: bool = Field(
+        default=False,
+        description="Serve /_waf/metrics without a token. Set this only when the "
+        "port is reachable solely by your Prometheus scraper.",
+    )
+
     @property
     def blocking(self) -> bool:
         return self.mode == "block"

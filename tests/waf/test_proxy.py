@@ -15,6 +15,8 @@ from fastapi.testclient import TestClient
 from mlwaf.waf.app import create_app
 from mlwaf.waf.config import Settings
 
+from .conftest import AUTH, TEST_TOKEN
+
 RECEIVED: list[dict] = []
 
 
@@ -48,6 +50,7 @@ def upstream():
 def _client(upstream, bundle, **overrides) -> TestClient:
     overrides.setdefault("mode", "block")
     overrides.setdefault("scoring_budget_ms", 60_000.0)
+    overrides.setdefault("admin_token", TEST_TOKEN)
     settings = Settings(upstream=upstream, db_path=":memory:", **overrides)
     return TestClient(create_app(settings, bundle=dict(bundle)))
 
@@ -101,7 +104,7 @@ def test_a_weak_injection_gets_through_at_this_threshold(client):
     r = client.post("/login", content="username=admin'--&password=x",
                     headers={"Content-Type": "application/x-www-form-urlencoded"})
     assert r.status_code == 200
-    row = client.get("/_waf/decisions").json()["decisions"][0]
+    row = client.get("/_waf/decisions", headers=AUTH).json()["decisions"][0]
     assert 0.5 < row["score"] < row["threshold"]
 
 
@@ -133,7 +136,7 @@ def test_oversized_body_is_forwarded_unscored(upstream, bundle):
         r = c.post("/upload", content="x" * 500)
         assert r.status_code == 200
         assert len(RECEIVED) == 1
-        decisions = c.get("/_waf/decisions").json()["decisions"]
+        decisions = c.get("/_waf/decisions", headers=AUTH).json()["decisions"]
     assert decisions[0]["reason"] == "body_too_large"
     assert decisions[0]["degraded"] is True
 
@@ -147,7 +150,7 @@ def test_post_body_attack_is_explained(client):
     """The explanation must cover the body, not just the query string."""
     client.post("/login", content="username=admin' OR 1=1--&password=x",
                 headers={"Content-Type": "application/x-www-form-urlencoded"})
-    row = client.get("/_waf/decisions").json()["decisions"][0]
+    row = client.get("/_waf/decisions", headers=AUTH).json()["decisions"][0]
     trace = row["explanation"]["decode_trace"]
     assert trace, "a body borne attack must still produce a decode trace"
     assert any("or 1=1" in s["value"].lower() for s in trace)
@@ -155,7 +158,7 @@ def test_post_body_attack_is_explained(client):
 
 def test_decision_is_recorded_with_an_explanation(client):
     client.get("/item", params={"id": "1' UNION SELECT password FROM users--"})
-    row = client.get("/_waf/decisions").json()["decisions"][0]
+    row = client.get("/_waf/decisions", headers=AUTH).json()["decisions"][0]
     assert row["verdict"] == "block"
     assert row["attack_class"] == "sqli"
     trace = row["explanation"]["decode_trace"]

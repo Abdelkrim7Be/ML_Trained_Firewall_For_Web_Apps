@@ -19,6 +19,8 @@ def bundle():
 # budget belongs in production config; here it would only make the suite flaky
 # under load. The one test that exercises the budget sets its own.
 TEST_BUDGET_MS = 60_000.0
+TEST_TOKEN = "test-admin-token"
+AUTH = {"X-MLWAF-Token": TEST_TOKEN}
 
 
 def make_engine(bundle, **overrides) -> Engine:

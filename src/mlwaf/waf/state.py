@@ -19,6 +19,7 @@ from mlwaf.waf import metrics
 from mlwaf.waf.config import Settings, get_settings
 from mlwaf.waf.engine import Engine, RequestView
 from mlwaf.waf.explain import Explainer
+from mlwaf.waf.security import generate_token
 from mlwaf.waf.store import DecisionRecord, Store
 
 log = logging.getLogger("mlwaf.state")
@@ -73,6 +74,14 @@ class AppState:
 
     # --- lifecycle -----------------------------------------------------------
     async def startup(self) -> None:
+        if not self.settings.admin_token:
+            # A generated token still protects the control plane; printing it is
+            # what keeps a local run usable without any configuration.
+            self.settings.admin_token = generate_token()
+            log.warning(
+                "no WAF_ADMIN_TOKEN set, generated one for this run",
+                extra={"admin_token": self.settings.admin_token},
+            )
         self.store.connect()
         # Blocking work, kept off the event loop so startup does not stall it.
         await asyncio.to_thread(self.engine.load)

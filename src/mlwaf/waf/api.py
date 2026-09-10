@@ -16,6 +16,7 @@ from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from mlwaf.waf import metrics
+from mlwaf.waf.security import ADMIN, METRICS
 
 if TYPE_CHECKING:
     from mlwaf.waf.state import AppState
@@ -56,14 +57,28 @@ async def readyz(request: Request) -> Response:
     )
 
 
-@router.get("/metrics")
+@router.post("/auth")
+async def auth(request: Request) -> dict:
+    """Check a token without performing an action.
+
+    The console calls this once so it can tell a wrong token from a broken
+    server, rather than showing an empty dashboard and leaving the operator to
+    guess which it was.
+    """
+    from mlwaf.waf.security import require_admin
+
+    require_admin(request)
+    return {"status": "ok"}
+
+
+@router.get("/metrics", dependencies=METRICS)
 async def prometheus() -> Response:
     payload, content_type = metrics.render()
     return Response(content=payload, media_type=content_type)
 
 
 # --- status and decisions ----------------------------------------------------
-@router.get("/status")
+@router.get("/status", dependencies=ADMIN)
 async def status(request: Request) -> dict:
     state = _state(request)
     return {
@@ -81,7 +96,7 @@ async def status(request: Request) -> dict:
     }
 
 
-@router.get("/decisions")
+@router.get("/decisions", dependencies=ADMIN)
 async def decisions(
     request: Request,
     limit: int = Query(100, ge=1, le=500),
@@ -97,7 +112,7 @@ async def decisions(
     return {"decisions": rows}
 
 
-@router.get("/decisions/{decision_id}")
+@router.get("/decisions/{decision_id}", dependencies=ADMIN)
 async def decision_detail(request: Request, decision_id: int) -> dict:
     row = _state(request).store.get(decision_id)
     if row is None:
@@ -105,13 +120,13 @@ async def decision_detail(request: Request, decision_id: int) -> dict:
     return row
 
 
-@router.get("/traffic")
+@router.get("/traffic", dependencies=ADMIN)
 async def traffic(request: Request, buckets: int = Query(60, ge=10, le=240)) -> dict:
     return {"series": _state(request).store.traffic_series(buckets=buckets)}
 
 
 # --- threshold ---------------------------------------------------------------
-@router.get("/threshold/impact")
+@router.get("/threshold/impact", dependencies=ADMIN)
 async def threshold_impact(
     request: Request,
     value: float = Query(..., ge=0.0, le=1.0),
@@ -129,7 +144,7 @@ class ThresholdUpdate(BaseModel):
     value: float = Field(ge=0.0, le=1.0)
 
 
-@router.post("/threshold")
+@router.post("/threshold", dependencies=ADMIN)
 async def set_threshold(request: Request, update: ThresholdUpdate) -> dict:
     state = _state(request)
     state.engine.set_threshold(update.value)
@@ -141,7 +156,7 @@ class ModeUpdate(BaseModel):
     mode: str = Field(pattern="^(detect|block)$")
 
 
-@router.post("/mode")
+@router.post("/mode", dependencies=ADMIN)
 async def set_mode(request: Request, update: ModeUpdate) -> dict:
     state = _state(request)
     state.settings.mode = update.mode
@@ -154,7 +169,7 @@ class Feedback(BaseModel):
     label: str = Field(pattern="^(false_positive|true_positive)$")
 
 
-@router.post("/decisions/{decision_id}/feedback")
+@router.post("/decisions/{decision_id}/feedback", dependencies=ADMIN)
 async def feedback(request: Request, decision_id: int, body: Feedback) -> dict:
     state = _state(request)
     ok = await asyncio.to_thread(state.write_feedback, decision_id, body.label)
@@ -164,7 +179,7 @@ async def feedback(request: Request, decision_id: int, body: Feedback) -> dict:
 
 
 # --- live stream -------------------------------------------------------------
-@router.get("/stream")
+@router.get("/stream", dependencies=ADMIN)
 async def stream(request: Request) -> StreamingResponse:
     state = _state(request)
     queue = state.broadcaster.subscribe()

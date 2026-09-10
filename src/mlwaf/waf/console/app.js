@@ -4,6 +4,26 @@
 
 const API = "/_waf";
 const MAX_ROWS = 400;
+const TOKEN_KEY = "mlwaf.token";
+
+/* The control plane shares a port with the proxy, so it requires a token. It is
+   held in sessionStorage rather than localStorage: closing the tab should end
+   the session, and an operator console is not something to leave authenticated
+   on a shared machine indefinitely. */
+let token = sessionStorage.getItem(TOKEN_KEY) || "";
+
+function promptForToken(message) {
+  const entered = window.prompt(message || "Control plane token (WAF_ADMIN_TOKEN):", "");
+  if (entered === null) return false;
+  token = entered.trim();
+  sessionStorage.setItem(TOKEN_KEY, token);
+  return true;
+}
+
+function clearToken() {
+  token = "";
+  sessionStorage.removeItem(TOKEN_KEY);
+}
 
 const el = (id) => document.getElementById(id);
 const state = {
@@ -24,8 +44,13 @@ const esc = (s) =>
 
 const truncate = (s, n) => (s && s.length > n ? s.slice(0, n) + "…" : s || "");
 
-async function api(path, options) {
-  const r = await fetch(API + path, options);
+async function api(path, options = {}) {
+  const headers = { ...(options.headers || {}), "X-MLWAF-Token": token };
+  const r = await fetch(API + path, { ...options, headers });
+  if (r.status === 401) {
+    clearToken();
+    throw new Error("unauthorised");
+  }
   if (!r.ok) throw new Error(`${r.status} ${path}`);
   return r.json();
 }
@@ -241,7 +266,9 @@ function onThresholdInput() {
 
 /* ---------- live stream ---------- */
 function connect() {
-  const es = new EventSource(`${API}/stream`);
+  // EventSource cannot set headers, so the stream accepts the token as a query
+  // parameter. It travels the same TLS connection as the header would.
+  const es = new EventSource(`${API}/stream?token=${encodeURIComponent(token)}`);
 
   es.onopen = () => {
     el("dot").className = "dot live";
@@ -303,8 +330,27 @@ function bind() {
     }));
 }
 
+async function ensureAuthenticated() {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (!token && !promptForToken()) return false;
+    try {
+      await api("/auth", { method: "POST" });
+      return true;
+    } catch (err) {
+      if (err.message !== "unauthorised") throw err;
+      if (!promptForToken("That token was rejected. Try again:")) return false;
+    }
+  }
+  return false;
+}
+
 async function boot() {
   bind();
+  if (!(await ensureAuthenticated())) {
+    el("conn").textContent = "not authenticated";
+    el("dot").className = "dot down";
+    return;
+  }
   await refreshStatus();
   const { decisions } = await api("/decisions?limit=200");
   state.rows = decisions;

@@ -11,6 +11,7 @@ injection actually travels, were never looked at.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING
 
@@ -111,7 +112,12 @@ async def proxy(request: Request) -> Response:
     raw_body = await request.body()
     body, oversized = _decoded_body(raw_body, state.settings.max_body_bytes)
 
-    decision = state.engine.decide(_view(request, body))
+    # Scoring is synchronous CPU work. Running it inline blocks the event loop
+    # for the duration, so concurrent requests queue behind each other and start
+    # timing out well before the model is actually saturated. numpy and LightGBM
+    # release the GIL for the expensive parts, so a worker thread genuinely
+    # overlaps rather than just moving the problem.
+    decision = await asyncio.to_thread(state.engine.decide, _view(request, body))
     if oversized:
         # Recorded honestly: this request was forwarded without being scored.
         decision.reason = "body_too_large"

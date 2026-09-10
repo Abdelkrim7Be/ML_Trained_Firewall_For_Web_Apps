@@ -23,6 +23,8 @@ import pytest
 REPO = Path(__file__).resolve().parents[2]
 PYTHON = str(REPO / ".venv" / "bin" / "python")
 BOOT_TIMEOUT = 120.0
+ADMIN_TOKEN = "e2e-admin-token"
+AUTH = {"X-MLWAF-Token": ADMIN_TOKEN}
 
 
 def free_port() -> int:
@@ -97,6 +99,7 @@ class Waf:
             "WAF_DB_PATH": str(db_path),
             "WAF_FEEDBACK_PATH": str(db_path.parent / "feedback.jsonl"),
             "WAF_MODE": "block",
+            "WAF_ADMIN_TOKEN": ADMIN_TOKEN,
             "WAF_SCORING_BUDGET_MS": "60000",
             "PYTHONPATH": str(REPO / "src"),
             **{k: str(v) for k, v in env.items()},
@@ -161,8 +164,50 @@ def waf(origin, tmp_path_factory):
     w.stop()
 
 
+@pytest.fixture(scope="module")
+def pooled(waf):
+    """One client with a connection pool, shared across a module.
+
+    Creating an httpx.Client per request measures connection setup, not the
+    firewall: it caps throughput at roughly a fifth of the real figure and makes
+    load tests fail for a reason that has nothing to do with the server.
+    """
+    limits = httpx.Limits(max_connections=64, max_keepalive_connections=64)
+    with httpx.Client(base_url=waf.url, timeout=120.0, headers=AUTH, limits=limits) as c:
+        c.get("/_waf/healthz")
+        yield c
+
+
+@pytest.fixture
+def anonymous(waf):
+    """No token at all. For asserting that the control plane refuses strangers."""
+    with httpx.Client(base_url=waf.url, timeout=30.0) as c:
+        yield c
+
+
+@pytest.fixture
+def isolated(origin, tmp_path_factory):
+    """A server of its own, for tests that change global state.
+
+    Anything that moves the threshold or the mode must not run against the shared
+    instance: a test that forgets to restore it silently disables the firewall for
+    everything that runs afterwards, and the whole suite then passes for the wrong
+    reason.
+    """
+    db = tmp_path_factory.mktemp("waf-isolated") / "waf.db"
+    w = Waf(origin.url, db).start()
+    yield w
+    w.stop()
+
+
 @pytest.fixture
 def client(waf, origin):
+    """Sends the control plane token on every request.
+
+    Harmless for proxied traffic, since the header is stripped as a normal one
+    and the upstream ignores it, and it keeps every /_waf call in the suite
+    authenticated without threading the header through each one.
+    """
     origin.clear()
-    with httpx.Client(base_url=waf.url, timeout=30.0) as c:
+    with httpx.Client(base_url=waf.url, timeout=30.0, headers=AUTH) as c:
         yield c
