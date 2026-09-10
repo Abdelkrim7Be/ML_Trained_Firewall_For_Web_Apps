@@ -1,6 +1,6 @@
 VENV := .venv/bin
 
-.PHONY: install data train plots report test lint notebook \
+.PHONY: install data train plots report test e2e lint notebook \
         robustness errors adversarial external stability all evaluate clean
 
 install:
@@ -39,8 +39,11 @@ report:                ## regenerate reports/tables.md from the JSON
 evaluate: robustness errors external adversarial plots report
 
 # --- quality ----------------------------------------------------------------
-test:
-	$(VENV)/python -m pytest tests/ -q
+test:                  ## unit and integration
+	$(VENV)/python -m pytest tests/waf tests/test_*.py -q
+
+e2e:                   ## end to end, starts real server processes
+	$(VENV)/python -m pytest tests/e2e -q
 
 lint:
 	$(VENV)/ruff check src tests
@@ -48,7 +51,7 @@ lint:
 notebook:
 	$(VENV)/jupyter notebook notebooks/
 
-all: data train evaluate test
+all: data train evaluate test e2e
 
 clean:
 	rm -rf data/processed/* reports/*.png reports/*.json reports/tables.md models/*.joblib

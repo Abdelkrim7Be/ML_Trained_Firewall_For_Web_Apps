@@ -372,8 +372,9 @@ X-MLWAF-Action: block
 {"error":"request_blocked","request_id":"f6d2367e-00000002"}
 ```
 
-Full walkthrough, including the sqlmap comparison, in [`docs/DEMO.md`](docs/DEMO.md).
-Design and the reasoning behind it in [`docs/WAF_PLAN.md`](docs/WAF_PLAN.md).
+How to drive all of it: [`docs/USAGE.md`](docs/USAGE.md). The sqlmap walkthrough:
+[`docs/DEMO.md`](docs/DEMO.md). Design and reasoning: [`docs/WAF_PLAN.md`](docs/WAF_PLAN.md).
+What end to end testing exposed: [`docs/FINDINGS.md`](docs/FINDINGS.md).
 
 ### Every decision is explainable
 
