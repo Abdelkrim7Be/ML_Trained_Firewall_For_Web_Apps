@@ -274,8 +274,16 @@ Three deliberate choices:
 make install     # uv venv + deps
 make data        # download corpora, parse, dedupe   (~40 MB)
 make train       # train all three models, write reports/metrics.json
-make plots       # confusion matrix, PR curve, feature importance
-make test        # 24 tests
+make evaluate    # robustness, errors, external benchmark, adversarial, plots, tables
+make test        # 36 tests
+```
+
+`make all` runs the lot. Two evaluations are deliberately separate because they are
+slow and only needed when changing the design rather than the code:
+
+```sh
+make stability   # refit every candidate across 5 seeds, report mean ± std
+make adversarial # retrain on obfuscated payloads, score on held-out transforms
 ```
 
 Score a single request:

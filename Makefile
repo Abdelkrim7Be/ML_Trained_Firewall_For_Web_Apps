@@ -1,6 +1,7 @@
 VENV := .venv/bin
 
-.PHONY: install data train plots test lint all clean
+.PHONY: install data train plots report test lint notebook \
+        robustness errors adversarial external stability all evaluate clean
 
 install:
 	uv venv --python 3.12
@@ -13,9 +14,31 @@ data:
 train:
 	$(VENV)/python -m mlwaf.train
 
+# --- evaluation -------------------------------------------------------------
+robustness:            ## recall decay under 13 obfuscation transforms
+	$(VENV)/python -m mlwaf.robustness
+
+errors:                ## profile what the model misses
+	$(VENV)/python -m mlwaf.errors
+
+external:              ## 646 third-party obfuscated payloads
+	$(VENV)/python -m mlwaf.external
+
+adversarial:           ## train on 4 transforms, score on 9 held out
+	$(VENV)/python -m mlwaf.adversarial
+
+stability:             ## refit across 5 seeds; slow, run before design changes
+	$(VENV)/python -m mlwaf.stability
+
 plots:
 	$(VENV)/python -m mlwaf.plots
 
+report:                ## regenerate reports/tables.md from the JSON
+	$(VENV)/python -m mlwaf.report
+
+evaluate: robustness errors external adversarial plots report
+
+# --- quality ----------------------------------------------------------------
 test:
 	$(VENV)/python -m pytest tests/ -q
 
@@ -25,7 +48,8 @@ lint:
 notebook:
 	$(VENV)/jupyter notebook notebooks/
 
-all: data train plots test
+all: data train evaluate test
 
 clean:
-	rm -rf data/processed/* reports/*.png reports/*.json models/*.joblib
+	rm -rf data/processed/* reports/*.png reports/*.json reports/tables.md models/*.joblib
+	git checkout -- reports/robustness_baseline.json 2>/dev/null || true
