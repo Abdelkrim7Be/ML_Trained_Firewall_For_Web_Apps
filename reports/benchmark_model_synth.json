@@ -1,58 +1,34 @@
 {
   "model": "models/model_synth.joblib",
-  "threshold": 0.36471222890297145,
+  "threshold": 0.9781228672973817,
   "false_positives": {
     "requests": 21167,
-    "flagged": 9,
-    "false_positive_rate": 0.000425,
-    "requests_per_second": 876.9,
+    "flagged": 2,
+    "false_positive_rate": 9.4e-05,
+    "requests_per_second": 752.6,
     "top_tokens_in_flagged": [
       [
         "htbin",
-        9
-      ],
-      [
-        "wais",
-        9
-      ],
-      [
-        "elements",
         2
       ],
       [
-        "and",
+        "wais",
         2
       ],
       [
         "mov",
-        2
+        1
       ],
       [
         "avi",
-        2
-      ],
-      [
-        "orbital",
-        1
-      ],
-      [
-        "keplerian",
-        1
-      ],
-      [
-        "keps",
-        1
-      ],
-      [
-        "kempler",
-        1
-      ],
-      [
-        "sts",
         1
       ],
       [
         "fuel",
+        1
+      ],
+      [
+        "and",
         1
       ],
       [
@@ -62,102 +38,64 @@
       [
         "space",
         1
-      ],
-      [
-        "challenger",
-        1
       ]
     ],
     "examples": [
       {
-        "score": 0.9993,
-        "method": "GET",
-        "path": "/htbin/wais.pl",
-        "query": "orbital+elements+OR+keplerian+OR+keps"
-      },
-      {
-        "score": 0.9986,
-        "method": "GET",
-        "path": "/htbin/wais.pl",
-        "query": "(kempler%20elements)%20and%20(sts70)"
-      },
-      {
-        "score": 0.9775,
-        "method": "GET",
-        "path": "/htbin/wais.pl",
-        "query": "fuel+AND+vacuum+OR+space"
-      },
-      {
-        "score": 0.9272,
-        "method": "GET",
-        "path": "/htbin/wais.pl",
-        "query": "challenger+or+51L"
-      },
-      {
-        "score": 0.8712,
+        "score": 0.9969,
         "method": "GET",
         "path": "/htbin/wais.pl",
         "query": "*.mov+or+*.avi"
       },
       {
-        "score": 0.7176,
+        "score": 0.9832,
         "method": "GET",
         "path": "/htbin/wais.pl",
-        "query": "mov%20or%20avi%20files"
-      },
-      {
-        "score": 0.5941,
-        "method": "GET",
-        "path": "/htbin/wais.pl",
-        "query": "mpeg+or+mpg"
-      },
-      {
-        "score": 0.5078,
-        "method": "GET",
-        "path": "/htbin/wais.pl",
-        "query": "crawler+transporter"
-      },
-      {
-        "score": 0.4902,
-        "method": "GET",
-        "path": "/htbin/wais.pl",
-        "query": "triumph+or+turkey"
+        "query": "fuel+AND+vacuum+OR+space"
       }
     ],
-    "near_misses": 0
+    "near_misses": 5
   },
   "recall": {
     "sqli": {
       "payloads": 759,
-      "caught": 723,
-      "recall": 0.9526,
+      "caught": 714,
+      "recall": 0.9407,
       "missed_examples": [
         {
-          "score": 0.0,
+          "score": 0.0003,
           "payload": "!"
         },
         {
-          "score": 0.017,
+          "score": 0.2512,
           "payload": "\"&\""
         },
         {
-          "score": 0.017,
+          "score": 0.2512,
           "payload": "\"*\""
         },
         {
-          "score": 0.017,
+          "score": 0.2512,
           "payload": "\"-\""
         },
         {
-          "score": 0.017,
+          "score": 0.2512,
           "payload": "\"^\""
         },
         {
-          "score": 0.0,
+          "score": 0.8523,
+          "payload": "%20$(sleep%2050)"
+        },
+        {
+          "score": 0.6217,
+          "payload": "%20'sleep%2050'"
+        },
+        {
+          "score": 0.0003,
           "payload": "&"
         },
         {
-          "score": 0.1901,
+          "score": 0.9091,
           "payload": "'"
         },
         {
@@ -169,27 +107,35 @@
           "payload": "'||UTL_HTTP.REQUEST"
         },
         {
-          "score": 0.0,
-          "payload": ")"
+          "score": 0.0349,
+          "payload": "("
         },
         {
           "score": 0.0003,
+          "payload": ")"
+        },
+        {
+          "score": 0.6225,
+          "payload": ")-sleep(9999"
+        },
+        {
+          "score": 0.0377,
+          "payload": "*(|(objectclass=*))"
+        },
+        {
+          "score": 0.0089,
           "payload": "*/*"
         },
         {
           "score": 0.0002,
-          "payload": "*|"
-        },
-        {
-          "score": 0.0001,
           "payload": "/"
         },
         {
-          "score": 0.0004,
+          "score": 0.0034,
           "payload": "//"
         },
         {
-          "score": 0.0003,
+          "score": 0.0104,
           "payload": "//*"
         },
         {
@@ -197,19 +143,15 @@
           "payload": "0"
         },
         {
-          "score": 0.0003,
+          "score": 0.0074,
           "payload": "031003000270000"
         },
         {
-          "score": 0.0,
+          "score": 0.0003,
           "payload": "?"
         },
         {
-          "score": 0.0,
-          "payload": "PRINT"
-        },
-        {
-          "score": 0.0004,
+          "score": 0.0014,
           "payload": "a'"
         },
         {
@@ -219,45 +161,57 @@
         {
           "score": 0.0,
           "payload": "asc"
-        },
-        {
-          "score": 0.0,
-          "payload": "bfilename"
-        },
-        {
-          "score": 0.2913,
-          "payload": "delete"
-        },
-        {
-          "score": 0.0,
-          "payload": "desc"
         }
       ]
     },
     "xss": {
       "payloads": 1936,
-      "caught": 1931,
-      "recall": 0.9974,
+      "caught": 1925,
+      "recall": 0.9943,
       "missed_examples": [
         {
-          "score": 0.0,
+          "score": 0.868,
+          "payload": "> XSS | Replacive Fuzzers"
+        },
+        {
+          "score": 0.0001,
           "payload": "_"
         },
         {
-          "score": 0.2251,
+          "score": 0.0066,
           "payload": "b=top,a=/loc/ . source,a+=/ation/ . source,b[a=a] = name"
         },
         {
-          "score": 0.0003,
+          "score": 0.0004,
           "payload": "data:text/html;charset=utf-7;base64,Ij48L3RpdGxlPjxzY3JpcHQ+YWxlcnQoMTMzNyk8L3NjcmlwdD4="
         },
         {
-          "score": 0.0533,
+          "score": 0.5274,
+          "payload": "document.__parent__._=alert"
+        },
+        {
+          "score": 0.0614,
           "payload": "eval(name)"
         },
         {
-          "score": 0.2384,
+          "score": 0.9754,
+          "payload": "http://www.simpatie.ro/index.php?page=top_movies&cat=13&p=2 p=2 ??XSS??"
+        },
+        {
+          "score": 0.0,
+          "payload": "open(name)"
+        },
+        {
+          "score": 0.0313,
           "payload": "res://c:\\\\program%20files\\\\adobe\\\\acrobat%207.0\\\\acrobat\\\\acrobat.dll/#2/#210"
+        },
+        {
+          "score": 0.0012,
+          "payload": "setTimeout// (name// ,0)"
+        },
+        {
+          "score": 0.1877,
+          "payload": "top.__proto__._= alert"
         }
       ]
     }

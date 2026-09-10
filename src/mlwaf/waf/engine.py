@@ -18,6 +18,7 @@ import joblib
 
 from mlwaf.decode import request_parts
 from mlwaf.model import CLASSES, attack_score
+from mlwaf.units import decompose
 from mlwaf.waf.config import Settings, get_settings
 from mlwaf.waf.scorer import FastScorer
 
@@ -42,6 +43,9 @@ class Decision:
     probabilities: dict[str, float] = field(default_factory=dict)
     canonical_text: str = ""
     decode_depth: int = 0
+    # Which part of the request was worst, when scoring per unit.
+    worst_unit: str = ""
+    unit_count: int = 0
 
     @property
     def blocked(self) -> bool:
@@ -95,6 +99,10 @@ class Engine:
         self._scorer: FastScorer | None = None
         self._cache = _LRU(self.settings.cache_size)
         self.ready = False
+        # A model trained on individual values expects to be given individual
+        # values. The bundle records which it is, so a request level model and a
+        # unit level model can both be served without a flag being set wrongly.
+        self.unit_mode = bool((bundle or {}).get("unit_mode", False))
         self.stats = {"scored": 0, "cached": 0, "timeouts": 0, "errors": 0}
 
     # --- lifecycle -----------------------------------------------------------
@@ -105,6 +113,7 @@ class Engine:
         if self.settings.threshold is not None:
             self._bundle["threshold"] = self.settings.threshold
         self._scorer = FastScorer(self._bundle["pipeline"])
+        self.unit_mode = bool(self._bundle.get("unit_mode", False))
 
         self._warm()
         self.ready = True
@@ -145,14 +154,54 @@ class Engine:
         self._cache.clear()
 
     # --- scoring -------------------------------------------------------------
-    def _score(self, view: RequestView) -> tuple[float, str, dict[str, float], str, int]:
+    def _score_text(self, text: str, url_text: str, body_text: str,
+                    query: str, path: str, depth: int):
+        proba = self._scorer.score(text, url_text, body_text, query, path, depth)
+        return float(attack_score(proba.reshape(1, -1))[0]), proba
+
+    def _score(self, view: RequestView) -> tuple[float, str, dict[str, float], str, int, str, int]:
+        if self.unit_mode:
+            return self._score_units(view)
+
         url_text, body_text, depth = view.canonical()
         text = "\n".join(t for t in (url_text, body_text) if t)
-        proba = self._scorer.score(text, url_text, body_text, view.query, view.path, depth)
-        score = float(attack_score(proba.reshape(1, -1))[0])
+        score, proba = self._score_text(text, url_text, body_text,
+                                        view.query, view.path, depth)
         probabilities = {c: round(float(p), 6) for c, p in zip(CLASSES, proba)}
         attack_class = max(CLASSES[1:], key=lambda c: probabilities[c])
-        return score, attack_class, probabilities, text, depth
+        return score, attack_class, probabilities, text, depth, "request", 1
+
+    def _score_units(self, view: RequestView):
+        """Score each value on its own and take the worst.
+
+        An injection lives in one parameter. Scoring the request as a whole makes
+        the surrounding context part of the evidence, which is how a model ends up
+        deciding that Spanish checkout parameters look like an attack. Scoring
+        values independently removes the context, and incidentally removes the
+        dilution evasion: padding a query with junk parameters just adds more
+        benign units.
+        """
+        units = decompose(view.method, view.path, view.query, view.body)
+
+        worst_score, worst_proba, worst_text, worst_label, worst_depth = -1.0, None, "", "", 0
+        for unit in units:
+            text = unit.text()
+            if not text:
+                continue
+            depth = unit.depth()
+            score, proba = self._score_text(text, text, "", unit.value, "", depth)
+            if score > worst_score:
+                worst_score, worst_proba = score, proba
+                worst_text, worst_depth = text, depth
+                worst_label = f"{unit.kind}:{unit.name}" if unit.name else unit.kind
+
+        if worst_proba is None:
+            return 0.0, "unknown", {c: 0.0 for c in CLASSES}, "", 0, "", 0
+
+        probabilities = {c: round(float(p), 6) for c, p in zip(CLASSES, worst_proba)}
+        attack_class = max(CLASSES[1:], key=lambda c: probabilities[c])
+        return (worst_score, attack_class, probabilities, worst_text, worst_depth,
+                worst_label, len(units))
 
     def decide(self, view: RequestView) -> Decision:
         started = time.perf_counter()
@@ -166,7 +215,8 @@ class Engine:
             return self._verdict(cached, time.perf_counter() - started, cached_hit=True)
 
         try:
-            score, attack_class, probabilities, text, depth = self._score(view)
+            score, attack_class, probabilities, text, depth, worst, n_units = \
+                self._score(view)
         except Exception:
             # A model that raises must not take the site down with it.
             self.stats["errors"] += 1
@@ -186,6 +236,8 @@ class Engine:
             "probabilities": probabilities,
             "canonical_text": text,
             "decode_depth": depth,
+            "worst_unit": worst,
+            "unit_count": n_units,
             "over_budget": elapsed_ms > self.settings.scoring_budget_ms,
         }
         self._cache.put(key, payload)
@@ -221,6 +273,8 @@ class Engine:
             probabilities=payload["probabilities"],
             canonical_text=payload["canonical_text"],
             decode_depth=payload["decode_depth"],
+            worst_unit=payload.get("worst_unit", ""),
+            unit_count=payload.get("unit_count", 0),
         )
 
     def _degraded(self, started: float, reason: str) -> Decision:

@@ -78,7 +78,12 @@ def main() -> None:
     REPORTS.mkdir(exist_ok=True)
     MODELS_DIR.mkdir(exist_ok=True)
 
-    if CORPUS == "synth":
+    unit_mode = CORPUS == "units"
+    if CORPUS == "units":
+        labelled = pd.read_parquet(PROCESSED / "units.parquet")
+        model_name = "model_units.joblib"
+        metrics_name = "metrics_units.json"
+    elif CORPUS == "synth":
         labelled = pd.read_parquet(PROCESSED / "synth.parquet")
         model_name = "model_synth.joblib"
         metrics_name = "metrics_synth.json"
@@ -144,17 +149,24 @@ def main() -> None:
     final = evaluate(SHIP_MODEL, y_test, model.predict(X_test), proba_test,
                      thresholds=thresholds)
 
-    final["generalisation"] = {
-        "unseen_attack_types": unseen_attack_recall(model.predict_proba(X_unseen), threshold),
-        "csic_cross_corpus": _cross_corpus(model, X_csic, y_csic, threshold),
-    }
+    if unit_mode:
+        # Those checks feed whole requests to a model trained on single values,
+        # which measures nothing. mlwaf.waf.benchmark covers this model instead.
+        final["generalisation"] = {"note": "see reports/benchmark_model_units.json"}
+    else:
+        final["generalisation"] = {
+            "unseen_attack_types": unseen_attack_recall(
+                model.predict_proba(X_unseen), threshold),
+            "csic_cross_corpus": _cross_corpus(model, X_csic, y_csic, threshold),
+        }
     final["leakage_check"] = _source_leakage_check(labelled, csic)
     final["operating_threshold"] = round(threshold, 6)
 
     results["FINAL_TEST"] = final
 
     (REPORTS / metrics_name).write_text(json.dumps(results, indent=2))
-    joblib.dump({"pipeline": model, "threshold": threshold}, MODELS_DIR / model_name)
+    joblib.dump({"pipeline": model, "threshold": threshold, "unit_mode": unit_mode},
+                MODELS_DIR / model_name)
 
     print("=" * 68)
     print(f"FINAL ({SHIP_MODEL}, held-out test, threshold={threshold:.4f})")
@@ -163,10 +175,11 @@ def main() -> None:
     at = final["at_fpr"][SHIP_FPR_BUDGET]
     print(f"  binary: recall={at['recall']}  fpr={at['fpr']}  pr_auc={final['binary_pr_auc']}")
     g = final["generalisation"]
-    print(f"  unseen attack types: {g['unseen_attack_types']['recall']} "
-          f"({g['unseen_attack_types']['caught']}/{g['unseen_attack_types']['n']})")
-    print(f"  csic cross-corpus:   recall={g['csic_cross_corpus']['recall']} "
-          f"fpr={g['csic_cross_corpus']['fpr']}")
+    if "unseen_attack_types" in g:
+        print(f"  unseen attack types: {g['unseen_attack_types']['recall']} "
+              f"({g['unseen_attack_types']['caught']}/{g['unseen_attack_types']['n']})")
+        print(f"  csic cross-corpus:   recall={g['csic_cross_corpus']['recall']} "
+              f"fpr={g['csic_cross_corpus']['fpr']}")
     print(f"  source leakage acc:  {final['leakage_check']['source_discrimination_accuracy']}")
     print("=" * 68)
     print(f"wrote reports/{metrics_name} and models/{model_name}")

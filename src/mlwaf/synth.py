@@ -302,5 +302,123 @@ def main() -> None:
         print(f"  [{label}] {row['method']} {row['path'][:50]}?{row['query'][:70]}")
 
 
+
+
+# ---------------------------------------------------------------------------
+# Unit level corpus
+#
+# The request level corpus above still lets context leak: the model sees the path
+# and the neighbouring parameters, and learns what a particular site looks like.
+# This builds the corpus the decomposition in `mlwaf.units` implies, where one row
+# is one value and there is no context to learn.
+# ---------------------------------------------------------------------------
+
+def _trace_values(limit: int = 200_000) -> tuple[list[str], list[str]]:
+    """Real parameter values and real paths, from every trace."""
+    values: set[str] = set()
+    paths: set[str] = set()
+
+    for name, url in TRACES.items():
+        dest = _download(url, RAW / name)
+        if dest is None:
+            continue
+        with gzip.open(dest, "rt", encoding="latin-1", errors="replace") as fh:
+            for line in fh:
+                m = LOG_LINE.search(line)
+                if not m:
+                    continue
+                route, _, query = m.group("target").partition("?")
+                if route and not route.startswith("/"):
+                    route = "/" + route
+                if route.startswith("/") and len(route) <= 160:
+                    paths.add(route)
+                if query and len(query) < 400:
+                    for pair in query.split("&"):
+                        _, _, value = pair.partition("=")
+                        if value:
+                            values.add(value[:400])
+                        elif pair:
+                            values.add(pair[:400])
+                if len(values) > limit:
+                    break
+    return sorted(values), sorted(paths)
+
+
+def build_units(seed: int = 42) -> pd.DataFrame:
+    """One row per value. Benign values come from real traffic, from generated
+    application data, and from deliberately confusing but harmless input."""
+    from mlwaf.hardneg import generate as hard_negatives
+    from mlwaf.units import Unit
+
+    rng = random.Random(seed)
+    print("[unit corpus]")
+    values, paths = _trace_values()
+    print(f"  real parameter values {len(values):,}")
+    print(f"  real paths            {len(paths):,}")
+
+    payloads = load_payloads()
+    hard = hard_negatives(6000)
+    print(f"  hard negatives        {len(hard):,}")
+
+    rows: list[dict] = []
+
+    def add(value: str, label: str, kind: str, split: str, origin: str) -> None:
+        unit = Unit(kind, "", value)
+        text = unit.text()
+        if not text:
+            return
+        rows.append({
+            "source": origin, "split": split, "raw_label": label, "label": label,
+            "method": "", "path": "", "query": value, "body": "",
+            "text": text, "text_url": text, "text_body": "",
+            "decode_depth": unit.depth(),
+        })
+
+    # Benign: real values, real paths, generated application data, hard negatives.
+    for value in values:
+        add(value, "benign", "query", _split_of(value, "value"), "trace_value")
+    for path in paths:
+        add(path, "benign", "path", _split_of(path, "path"), "trace_path")
+    for value in hard:
+        add(value, "benign", "query", _split_of(value, "hardneg"), "hard_negative")
+    for _ in range(20_000):
+        value = rng.choice(BENIGN_VALUES)
+        add(value, "benign", "query", _split_of(value + str(rng.random()), "gen"), "generated")
+
+    # Attacks: the payload alone, with no request built around it.
+    for kind, buckets in payloads.items():
+        for split, items in buckets.items():
+            for payload in items:
+                add(payload, kind, "query", split, "payload")
+                # A payload that arrives encoded is the same attack, and the
+                # normaliser is meant to make it look identical. Including both
+                # forms keeps that assumption honest at training time.
+                if rng.random() < 0.5:
+                    add(quote(payload, safe=""), kind, "query", split, "payload_encoded")
+
+    df = pd.DataFrame(rows)
+    digest = df["text"].map(lambda t: hashlib.sha1(t.encode()).hexdigest())
+    before = len(df)
+    df = df.loc[~digest.duplicated()].reset_index(drop=True)
+    print(f"  dedupe: {before:,} -> {len(df):,}")
+    return df.sample(frac=1.0, random_state=seed).reset_index(drop=True)
+
+
+def main_units() -> None:
+    PROCESSED.mkdir(parents=True, exist_ok=True)
+    df = build_units()
+    df.to_parquet(PROCESSED / "units.parquet")
+    print("\n[summary]")
+    print(df.groupby(["split", "label"]).size().unstack(fill_value=0))
+    print("\nby origin:")
+    print(df.groupby("source").size())
+    print(f"\nwrote data/processed/units.parquet ({len(df):,} rows)")
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+
+    if "--units" in sys.argv:
+        main_units()
+    else:
+        main()
