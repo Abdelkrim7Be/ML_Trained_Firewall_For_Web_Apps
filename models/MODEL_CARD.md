@@ -130,10 +130,33 @@ seen in training rather than memorisation of the ones that were.
 - **Encrypted or non-form bodies.** Multipart uploads and non-UTF-8 bodies are
   handled as raw text.
 
+## Calibration
+
+The operating point is quoted as "block above threshold t, and 0.1% of legitimate
+requests pay for it". That claim only holds if the scores mean what they say, so
+expected calibration error and Brier score are reported alongside the ranking
+metrics, and `reports/calibration.png` plots predicted confidence against observed
+attack rate. A model can rank well and still be badly calibrated, in which case the
+chosen threshold does not mean what the table says it means.
+
+## Measurement noise
+
+Every headline number comes from one 60/20/20 split. Refitting an unchanged model
+on a different seed moves macro-F1 by roughly half a point, so any comparison
+decided by less than that was decided by the split rather than the model.
+`mlwaf.stability` refits each candidate across five seeds and reports mean and
+standard deviation; it is the tool that settles design choices here, and its
+verdict lines mark a difference as real only when it exceeds twice the observed
+spread.
+
 ## Reproducing
 
 ```sh
 make install
 make data
-make train
+make train      # the model
+make evaluate   # robustness, errors, external benchmark, adversarial, figures
 ```
+
+`make stability` refits across seeds and is the one to run before believing that a
+change helped.
