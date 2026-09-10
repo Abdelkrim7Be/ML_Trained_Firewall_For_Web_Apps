@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mlwaf console</title>
+<link rel="stylesheet" href="/_waf/static/style.css">
+<link rel="icon" href="data:,">
+</head>
+<body>
+
+<header>
+  <div class="brand">mlwaf <span>/ console</span></div>
+  <div class="status"><span class="dot" id="dot"></span><span id="conn">connecting</span></div>
+  <div class="upstream" id="upstream">&mdash;</div>
+  <div class="spacer"></div>
+  <div class="status" id="uptime"></div>
+  <div class="mode-toggle">
+    <button id="mode-detect" data-mode="detect">DETECT</button>
+    <button id="mode-block" data-mode="block">BLOCK</button>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat">
+    <div class="label">requests</div>
+    <div class="value" id="s-total">0</div>
+  </div>
+  <div class="stat">
+    <div class="label">blocked</div>
+    <div class="value blocked" id="s-blocked">0</div>
+  </div>
+  <div class="stat">
+    <div class="label">flagged</div>
+    <div class="value" id="s-flagged">0</div>
+  </div>
+  <div class="stat">
+    <div class="label">scoring p&#8203;max</div>
+    <div class="value" id="s-latency">0<span class="unit">ms</span></div>
+  </div>
+  <div class="stat">
+    <div class="label">unscored</div>
+    <div class="value" id="s-degraded">0</div>
+  </div>
+  <div class="spark"><svg id="spark" preserveAspectRatio="none"></svg></div>
+</div>
+
+<div class="threshold">
+  <span class="label">threshold</span>
+  <input type="range" id="thr" min="0" max="1" step="0.005" value="0.9">
+  <span class="val" id="thr-val">0.900</span>
+  <span class="impact" id="thr-impact">&nbsp;</span>
+  <span class="spacerx"></span>
+  <button class="ghost" id="thr-reset">reset</button>
+  <button class="ghost apply" id="thr-apply">apply</button>
+</div>
+
+<main>
+  <div class="left">
+    <div class="filters">
+      <select id="f-verdict">
+        <option value="">all verdicts</option>
+        <option value="block">blocked</option>
+        <option value="allow">allowed</option>
+      </select>
+      <select id="f-class">
+        <option value="">all classes</option>
+        <option value="sqli">sqli</option>
+        <option value="xss">xss</option>
+      </select>
+      <select id="f-flagged">
+        <option value="">all requests</option>
+        <option value="1">flagged only (review queue)</option>
+      </select>
+      <input type="search" id="f-search" placeholder="filter path or query">
+      <button class="ghost" id="pause">pause</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>time</th><th>verdict</th><th>class</th>
+            <th style="text-align:right">score</th>
+            <th style="text-align:right">ms</th>
+            <th>request</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <aside class="detail" id="detail">
+    <div class="empty">select a request</div>
+  </aside>
+</main>
+
+<script src="/_waf/static/app.js"></script>
+</body>
+</html>
