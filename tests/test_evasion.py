@@ -67,7 +67,9 @@ def test_normaliser_resolves_sql_obfuscation():
     cases = {
         "space_to_comment": ("union/**/select", "union select"),
         "mysql_version_comment": ("/*!50000UNION*/ /*!50000SELECT*/", "union select"),
-        "hex_literal": ("id=0x61646d696e", "id=admin"),
+        # A hex literal is a *quoted* string literal, so it must normalise back to
+        # the quoted form -- otherwise the evasion still strips the quote signal.
+        "hex_literal": ("id=0x61646d696e", "id='admin'"),
         "char_function": ("id=CHAR(39)admin", "id='admin"),
         "space_to_tab": ("union\tselect", "union select"),
         "space_to_newline": ("union\nselect", "union select"),
