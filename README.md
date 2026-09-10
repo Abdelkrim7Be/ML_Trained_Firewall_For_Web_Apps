@@ -430,6 +430,41 @@ over 288 requests: mean **6.3 ms**, 99% under 10 ms, no timeouts.
 - Non root container, readiness gated on a warmed model, Prometheus metrics,
   structured JSON logs with a request id, graceful drain.
 
+### What end to end testing found
+
+Part 1 scored the model against held out slices of its own corpus. Part 2 put it
+in front of a web application and sent it the traffic a real site receives. That
+exposed something no corpus metric did:
+
+```
+/users/42/profile        score 0.9996   REFUSED
+/user/42/profile         score 0.265    allowed
+/accounts/42/profile     score 0.003    allowed
+
+id=1' OR 1=1--           score 0.481    allowed
+id=1' OR 1=1-- users     score 0.992    REFUSED
+```
+
+**The model largely learned that the token `users` means attack.** ECML/PKDD was
+sanitised before release, so its benign URLs are randomised strings while its
+attack payloads were left intact. Real English words therefore appear almost only
+inside attacks, and no split of that corpus can reveal the problem because the held
+out benign traffic is randomised too.
+
+It explains the part 1 numbers that looked merely disappointing: 0.147 recall
+cross corpus, 0.209 on unseen attack types, corpus separability 1.000. Those were
+symptoms; this is the mechanism. Full write up, including the payloads that get
+through, in [`docs/FINDINGS.md`](docs/FINDINGS.md).
+
+The firewall itself is fine: 57 end to end checks pass, covering blocking, origin
+isolation, obfuscation, concurrency, restart persistence, graceful shutdown and
+live streaming. The defect is in the data, which is why the fix is generating
+realistic traffic rather than adding trees.
+
+It is also the argument for every conservative default here. Enforcing this model
+on a real site would refuse every URL containing `users`, and detect mode plus the
+review queue surfaces that on the first afternoon at no cost.
+
 ### What v0 did instead
 
 ```python
