@@ -315,3 +315,90 @@ needs benign traffic that looks like benign traffic. A model cannot learn that
 `/shuttle/missions/` is ordinary if it has never seen an ordinary URL.
 
 Reproduce with `make benchmark`.
+
+
+---
+
+# Fixing it: a corpus where benign traffic looks benign
+
+The diagnosis said the training data was the problem, so the data was rebuilt.
+`mlwaf.synth` takes real paths from four public web server traces, roughly five
+million requests, and builds both classes on top of them:
+
+    benign   GET /shuttle/missions/sts-78/news/?qt=hubble
+    sqli     GET /shuttle/missions/news/1992/h02.13.92?utm_source=1' OR 1=1--
+
+The same paths carry both labels, so `shuttle` appears as often in an attack as in
+ordinary traffic and carries no signal. The only thing separating the classes is
+the payload, which is the thing the model is supposed to learn.
+
+Two holdouts, not one. Paths are partitioned across train, validation and test, and
+so are payloads, so an attack in the test split is built from a URL the model has
+never seen carrying a payload it has never seen.
+
+## The result
+
+Same benchmark, same NASA trace, same 2,695 community payloads.
+
+| | Trained on ECML | Trained on real traces |
+|---|---|---|
+| **False positives on real traffic** | 339 of 21,167, **1.60%** | 9 of 21,167, **0.0425%** |
+| SQL injection recall | 0.784 | **0.953** |
+| XSS recall | 0.826 | **0.997** |
+| Recall at 0.1% FPR, held out | 0.803 | **0.970** |
+| Unseen attack types | 0.209 | **0.760** |
+| macro F1 | 0.916 | 0.984 |
+
+**Thirty eight times fewer false positives, and better recall at the same time.**
+
+That both directions improved together is the part worth dwelling on. A threshold
+change trades one against the other; only a fix to the underlying representation
+moves both. The model was never short of capacity. It was short of an example of
+what ordinary traffic looks like.
+
+The cases that started this investigation:
+
+| Request | ECML model | Corpus model |
+|---|---|---|
+| `/users/42/profile` | 0.9996 refused | 0.0000 allowed |
+| `/shuttle/missions/sts-78/news/` | 0.9995 refused | 0.0000 allowed |
+| `id=1' OR 1=1--` | 0.512 allowed | 1.0000 refused |
+| `id=1' AND SLEEP(5)--` | 0.182 allowed | 1.0000 refused |
+
+Nine of nine correct, against five of nine before.
+
+## What is left, and why it is a different kind of problem
+
+Every one of the nine remaining false positives is the same endpoint:
+
+```
+/htbin/wais.pl?orbital+elements+OR+keplerian+OR+keps
+/htbin/wais.pl?fuel+AND+vacuum+OR+space
+/htbin/wais.pl?(kempler elements) and (sts70)
+/htbin/wais.pl?challenger+or+51L
+```
+
+A search form that accepts boolean operators. `x OR y` is a legitimate query to
+that application and is also the shape of an injection, and no amount of training
+data resolves that from the request alone: the two are genuinely
+indistinguishable without knowing what the endpoint does.
+
+This is not the earlier failure in a smaller form. `shuttle` was a corpus artefact
+and should never have carried signal. Boolean search syntax carries real signal
+that happens to be ambiguous. The honest handling is an endpoint exception, which
+is exactly what the console's review queue and feedback mechanism exist to
+produce.
+
+The remaining missed payloads are mostly degenerate single characters (`!`, `_`,
+`"&"`) that do nothing on their own, plus a handful of genuinely clever ones: a
+base64 `data:` URI using UTF-7, and `eval(name)`, which contains no attack syntax
+at all and gets its payload from the window name.
+
+## What this does not fix
+
+The corpus is generated, and generated data has its own shape. The benign requests
+use a hand written list of parameter names and values, so they are more regular
+than real application traffic. The traces are old, mostly static file serving, and
+carry few POST bodies, so bodies in the corpus are synthesised rather than
+observed. The next improvement is traffic captured from a real application, and
+the harness for that already exists as the Docker demo.
