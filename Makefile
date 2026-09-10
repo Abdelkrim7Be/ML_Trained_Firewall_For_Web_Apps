@@ -5,7 +5,7 @@ VENV := .venv/bin
 
 install:
 	uv venv --python 3.12
-	uv pip install -e ".[dev]"
+	uv pip install -e ".[dev,train,waf]"
 
 data:
 	$(VENV)/python -m mlwaf.download

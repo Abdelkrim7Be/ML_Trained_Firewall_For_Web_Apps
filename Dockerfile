@@ -52,6 +52,6 @@ ENV WAF_HOST=0.0.0.0 \
 
 # Readiness, not liveness: the container is unhealthy until the model is warm.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=40s --retries=5 \
-  CMD curl -fsS http://127.0.0.1:8080/_waf/readyz || exit 1
+  CMD curl -fsS "http://127.0.0.1:${WAF_PORT}/_waf/readyz" || exit 1
 
 CMD ["python", "-m", "mlwaf.waf.app"]
