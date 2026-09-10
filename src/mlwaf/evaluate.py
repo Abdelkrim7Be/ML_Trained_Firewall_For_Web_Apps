@@ -52,7 +52,20 @@ def binary_metrics(y_true: np.ndarray, scores: np.ndarray, threshold: float) -> 
     }
 
 
-def evaluate(name: str, y_true: np.ndarray, y_pred: np.ndarray, proba: np.ndarray) -> dict:
+def evaluate(
+    name: str,
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    proba: np.ndarray,
+    thresholds: dict[float, float] | None = None,
+) -> dict:
+    """Score a split.
+
+    `thresholds` supplies operating points chosen elsewhere -- pass the ones fitted
+    on validation when scoring the test set. Without it the thresholds are fitted
+    on the split being scored, which is fine for model selection on validation but
+    would be a leak on test: the cut would be chosen using the answers.
+    """
     scores = attack_score(proba)
     is_attack = (y_true != "benign").astype(int)
 
@@ -79,7 +92,9 @@ def evaluate(name: str, y_true: np.ndarray, y_pred: np.ndarray, proba: np.ndarra
     }
 
     for budget in FPR_BUDGETS:
-        thr = threshold_at_fpr(y_true, scores, budget)
+        thr = (thresholds or {}).get(budget)
+        if thr is None:
+            thr = threshold_at_fpr(y_true, scores, budget)
         result["at_fpr"][f"{budget:.3f}"] = binary_metrics(y_true, scores, thr)
 
     return result

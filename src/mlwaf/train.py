@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from mlwaf.evaluate import evaluate, threshold_at_fpr, unseen_attack_recall
+from mlwaf.evaluate import FPR_BUDGETS, evaluate, threshold_at_fpr, unseen_attack_recall
 from mlwaf.features import build_matrix
 from mlwaf.model import MODELS, attack_score
 
@@ -109,12 +109,17 @@ def main() -> None:
 
     # --- final scoring of the shipping model, on data touched once -------------
     model = fitted[SHIP_MODEL]
-    proba_test = model.predict_proba(X_test)
-    final = evaluate(SHIP_MODEL, y_test, model.predict(X_test), proba_test)
 
-    # Operating threshold is chosen on validation, never on test.
-    threshold = threshold_at_fpr(y_val, attack_score(fitted[SHIP_MODEL].predict_proba(X_val)),
-                                 float(SHIP_FPR_BUDGET))
+    # Every operating point is fitted on validation and then applied unchanged to
+    # test. Re-fitting them on test would choose the cut using the answers and
+    # report a slightly flattering recall at each budget.
+    val_scores = attack_score(model.predict_proba(X_val))
+    thresholds = {b: threshold_at_fpr(y_val, val_scores, b) for b in FPR_BUDGETS}
+    threshold = thresholds[float(SHIP_FPR_BUDGET)]
+
+    proba_test = model.predict_proba(X_test)
+    final = evaluate(SHIP_MODEL, y_test, model.predict(X_test), proba_test,
+                     thresholds=thresholds)
 
     final["generalisation"] = {
         "unseen_attack_types": unseen_attack_recall(model.predict_proba(X_unseen), threshold),
