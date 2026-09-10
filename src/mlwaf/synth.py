@@ -144,6 +144,11 @@ def load_traces() -> tuple[dict[str, list[str]], list[str]]:
                 if not m:
                     continue
                 route, _, query = m.group("target").partition("?")
+                # Some traces log the target relative to the document root
+                # ("GET index.html" rather than "GET /index.html"). Rejecting
+                # those on the leading slash silently discarded an entire trace.
+                if route and not route.startswith("/"):
+                    route = "/" + route
                 # Long junk routes are logging artefacts, not real pages.
                 if not route.startswith("/") or len(route) > 160:
                     continue
