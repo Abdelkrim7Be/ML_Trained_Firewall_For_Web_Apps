@@ -305,20 +305,26 @@ make notebook    # notebooks/01_data_and_model.ipynb
 
 ```
 src/mlwaf/
-  download.py   fetch the corpora
-  parse.py      raw HTTP blocks → structured requests
-  decode.py     the normalisation chain
-  features.py   char n-grams + 25 numeric features
-  dataset.py    labelling, dedupe, held-out splits
-  model.py      rule baseline, logistic regression, LightGBM
-  train.py      fit, compare, select threshold, persist
-  evaluate.py   metrics
-  plots.py      report figures
-  report.py     README tables, generated from metrics.json
-  cli.py        mlwaf <download|dataset|train|plots|predict>
-notebooks/      exploration only — never runtime
-models/         model.joblib + MODEL_CARD.md
-reports/        metrics.json, tables.md, figures
+  download.py     fetch the corpora
+  parse.py        raw HTTP blocks → structured requests
+  decode.py       the normalisation chain
+  features.py     char n-grams + 28 numeric features
+  dataset.py      labelling, dedupe, held-out splits
+  model.py        rule baseline, logistic regression, LightGBM
+  train.py        fit, compare, select threshold, persist
+  evaluate.py     metrics, including calibration
+  evasion.py      13 obfuscation transforms, 4 families
+  robustness.py   recall decay per transform
+  adversarial.py  train on 4 transforms, score on 9 held out
+  external.py     third-party obfuscated payload benchmark
+  errors.py       what the model misses, and whether it has a shape
+  stability.py    refit across seeds; separates real gains from noise
+  plots.py        report figures
+  report.py       README tables, generated from the JSON
+  cli.py          mlwaf <download|dataset|train|plots|predict>
+notebooks/        exploration only — never runtime
+models/           model.joblib + MODEL_CARD.md
+reports/          metrics, tables, figures — all generated
 ```
 
 Notebooks explore; `src/` runs. In v0 the notebooks *were* the runtime, which is
