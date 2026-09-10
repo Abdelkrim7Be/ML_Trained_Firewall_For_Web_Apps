@@ -104,6 +104,41 @@ def robustness_table() -> str:
     return "\n".join(lines)
 
 
+def adversarial_table() -> str:
+    """Held-out obfuscations are the ones that matter: they were never trained on."""
+    data = json.loads((REPORTS / "adversarial.json").read_text())
+    before, after = data["robustness_before"], data["robustness_after"]
+
+    header = ["Transform", "Seen in training", "Recall before", "Recall after", "Change"]
+    lines = [_row(header), _row(["---"] * len(header))]
+    for name, m in after.items():
+        if name == "none":
+            continue
+        b, a = before[name]["recall"], m["recall"]
+        lines.append(_row([
+            f"`{name}`",
+            "yes" if m["seen_in_training"] else "**no**",
+            f"{b:.3f}", f"{a:.3f}", f"{a - b:+.3f}",
+        ]))
+    return "\n".join(lines)
+
+
+def error_summary() -> str:
+    e = json.loads((REPORTS / "errors.json").read_text())
+    tp, fn = e["true_positives"], e["false_negatives"]
+    header = ["", "Caught", "Missed"]
+    keys = [("median_length", "Median length"),
+            ("median_decode_depth", "Median decode depth"),
+            ("has_body", "Share with a body"),
+            ("median_sql_keywords", "Median SQL keywords"),
+            ("median_xss_keywords", "Median XSS keywords")]
+    lines = [_row(header), _row(["---"] * len(header))]
+    for key, label in keys:
+        lines.append(_row([label, str(tp.get(key)), str(fn.get(key))]))
+    rates = ", ".join(f"{k} {v:.1%}" for k, v in e["miss_rate_by_class"].items())
+    return "\n".join(lines) + f"\n\nMiss rate by class: {rates}."
+
+
 def main() -> None:
     metrics = json.loads((REPORTS / "metrics.json").read_text())
     final = metrics["FINAL_TEST"]
@@ -133,6 +168,10 @@ def main() -> None:
     ]
     if (REPORTS / "robustness.json").exists():
         out += ["\n## Robustness to obfuscation\n", robustness_table()]
+    if (REPORTS / "adversarial.json").exists():
+        out += ["\n## Adversarial training\n", adversarial_table()]
+    if (REPORTS / "errors.json").exists():
+        out += ["\n## What it misses\n", error_summary()]
     text = "\n".join(out)
     (REPORTS / "tables.md").write_text(text + "\n")
     print(text)
