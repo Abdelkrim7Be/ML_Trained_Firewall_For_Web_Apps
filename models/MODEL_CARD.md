@@ -73,13 +73,38 @@ trained on, and performance on CSIC 2010, an entirely separate corpus.
 
 See `reports/metrics.json` for the numbers and the README for the summary table.
 
+## Robustness
+
+Recall on clean corpus payloads answers a question no attacker asks, so the model
+is also scored against thirteen obfuscation transforms across four families:
+encoding (URL, double-URL, HTML entity, JavaScript escape, unicode fullwidth,
+case), SQL syntax (comment-as-whitespace, MySQL version comments), whitespace
+substitution (tab, newline) and literal rewriting (`CHAR()`, hex literals, string
+concatenation).
+
+Transforms in the encoding family are what the normalisation chain exists to undo,
+so a non-zero bypass rate there is a defect in `decode.py` rather than a property
+of the model. Measuring them is how the chain is verified. Three real bypasses
+found this way — comment stripping that deleted rather than spaced, hex literals
+that were never decoded, and a `CHAR()` pattern that never matched — were fixed in
+the normaliser; `reports/robustness.json` and `reports/robustness_baseline.json`
+hold the before and after.
+
+On top of normalisation, the model is also trained on obfuscated copies of its
+attack rows. The transforms are split: four are used for augmentation and nine are
+held out, so the reported robustness measures generalisation to obfuscations never
+seen in training rather than memorisation of the ones that were.
+`reports/adversarial.json` holds the comparison.
+
 ## Known limitations
 
 - **Corpus age and sanitisation.** ECML/PKDD 2007 is old, and its URLs and
   parameter values are randomised. Real traffic has structure this corpus does not.
-- **No adversarial evaluation.** The model has not been tested against tools that
-  mutate payloads specifically to evade ML classifiers. Recall against a motivated
-  attacker will be lower than the numbers reported here.
+- **Hand-written transforms, not an adaptive attacker.** The evasion suite applies
+  a fixed catalogue of obfuscations. It does not search for a bypass the way a
+  genetic mutation tool such as WAF-A-MoLE does, so it establishes a floor on
+  robustness, not a ceiling. An adaptive attacker will do better than these
+  numbers suggest.
 - **Two attack classes.** Path traversal, OS command injection, LDAP and XPath
   injection and SSI are measured but not trained on.
 - **Per-request only.** No session state, so slow or distributed attacks that look
