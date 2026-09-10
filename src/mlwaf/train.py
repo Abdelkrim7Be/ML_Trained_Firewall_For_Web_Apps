@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from pathlib import Path
 
@@ -22,9 +23,23 @@ SEED = 42
 SHIP_MODEL = "lightgbm"
 SHIP_FPR_BUDGET = "0.001"
 
+# Which corpus to train on. `ecml` is the published academic set; `synth` is built
+# from real web server traces by mlwaf.synth, and carries its own split column
+# because its holdouts are by path and by payload rather than by row.
+CORPUS = os.environ.get("MLWAF_CORPUS", "ecml")
+
 
 def _split(df: pd.DataFrame, seed: int = SEED):
-    """60/20/20 stratified. The test split is scored once, at the very end."""
+    """60/20/20. The test split is scored once, at the very end.
+
+    A corpus that already carries a `split` column keeps it: the synthetic corpus
+    partitions by URL path and by attack payload, so re-splitting it by row here
+    would put the same path on both sides and quietly reintroduce the leak the
+    corpus exists to avoid.
+    """
+    if "split" in df.columns:
+        return (df[df["split"] == name].reset_index(drop=True)
+                for name in ("train", "val", "test"))
     train, rest = train_test_split(
         df, test_size=0.4, stratify=df["label"], random_state=seed
     )
@@ -63,10 +78,18 @@ def main() -> None:
     REPORTS.mkdir(exist_ok=True)
     MODELS_DIR.mkdir(exist_ok=True)
 
-    labelled = pd.read_parquet(PROCESSED / "ecml_labelled.parquet")
+    if CORPUS == "synth":
+        labelled = pd.read_parquet(PROCESSED / "synth.parquet")
+        model_name = "model_synth.joblib"
+        metrics_name = "metrics_synth.json"
+    else:
+        labelled = pd.read_parquet(PROCESSED / "ecml_labelled.parquet")
+        model_name = "model.joblib"
+        metrics_name = "metrics.json"
     unseen = pd.read_parquet(PROCESSED / "ecml_unseen.parquet")
     csic = pd.read_parquet(PROCESSED / "csic.parquet")
 
+    print(f"corpus {CORPUS}")
     train, val, test = _split(labelled)
     print(f"split  train={len(train)}  val={len(val)}  test={len(test)}")
     print(f"train dist {train['label'].value_counts().to_dict()}\n")
@@ -130,8 +153,8 @@ def main() -> None:
 
     results["FINAL_TEST"] = final
 
-    (REPORTS / "metrics.json").write_text(json.dumps(results, indent=2))
-    joblib.dump({"pipeline": model, "threshold": threshold}, MODELS_DIR / "model.joblib")
+    (REPORTS / metrics_name).write_text(json.dumps(results, indent=2))
+    joblib.dump({"pipeline": model, "threshold": threshold}, MODELS_DIR / model_name)
 
     print("=" * 68)
     print(f"FINAL ({SHIP_MODEL}, held-out test, threshold={threshold:.4f})")
@@ -146,7 +169,7 @@ def main() -> None:
           f"fpr={g['csic_cross_corpus']['fpr']}")
     print(f"  source leakage acc:  {final['leakage_check']['source_discrimination_accuracy']}")
     print("=" * 68)
-    print("wrote reports/metrics.json and models/model.joblib")
+    print(f"wrote reports/{metrics_name} and models/{model_name}")
 
 
 def _cross_corpus(model, X, y, threshold: float) -> dict:

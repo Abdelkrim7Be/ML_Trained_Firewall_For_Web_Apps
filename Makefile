@@ -1,6 +1,7 @@
 VENV := .venv/bin
 
 .PHONY: install data train plots report test e2e lint notebook benchmark \
+        synth train-synth benchmark-synth \
         robustness errors adversarial external stability all evaluate clean
 
 install:
@@ -26,6 +27,15 @@ external:              ## 646 third-party obfuscated payloads
 
 adversarial:           ## train on 4 transforms, score on 9 held out
 	$(VENV)/python -m mlwaf.adversarial
+
+synth:                 ## build a corpus from real web server traces
+	$(VENV)/python -m mlwaf.synth
+
+train-synth:           ## train on that corpus
+	MLWAF_CORPUS=synth $(VENV)/python -m mlwaf.train
+
+benchmark-synth:       ## benchmark the corpus-trained model
+	MLWAF_MODEL=models/model_synth.joblib $(VENV)/python -m mlwaf.waf.benchmark
 
 benchmark:             ## score against a real web server trace and outside payloads
 	$(VENV)/python -m mlwaf.waf.benchmark

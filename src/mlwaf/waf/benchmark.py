@@ -186,8 +186,12 @@ def recall(engine: Engine, payloads: dict[str, list[str]]) -> dict:
     return results
 
 
-def main(sample: int | None = 60_000, model_path: str = "models/model.joblib") -> None:
+def main(sample: int | None = 60_000, model_path: str | None = None) -> None:
+    import os
+
     REPORTS.mkdir(exist_ok=True)
+    model_path = model_path or os.environ.get("MLWAF_MODEL", "models/model.joblib")
+    print(f"model {model_path}")
     engine = _engine(model_path, threshold=None)
     print(f"threshold {engine.threshold:.4f}\n")
 
@@ -210,9 +214,12 @@ def main(sample: int | None = 60_000, model_path: str = "models/model.joblib") -
     for kind, r in rec.items():
         print(f"  {kind:<5} {r['recall']:.3f}  ({r['caught']}/{r['payloads']})")
 
-    report = {"threshold": engine.threshold, "false_positives": fp, "recall": rec}
-    (REPORTS / "benchmark.json").write_text(json.dumps(report, indent=2))
-    print("\nwrote reports/benchmark.json")
+    report = {"model": model_path, "threshold": engine.threshold,
+              "false_positives": fp, "recall": rec}
+    name = Path(model_path).stem
+    out = REPORTS / (f"benchmark_{name}.json" if name != "model" else "benchmark.json")
+    out.write_text(json.dumps(report, indent=2))
+    print(f"\nwrote {out}")
 
 
 if __name__ == "__main__":
