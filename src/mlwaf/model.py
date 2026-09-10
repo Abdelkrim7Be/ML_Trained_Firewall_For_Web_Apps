@@ -16,6 +16,7 @@ from lightgbm import LGBMClassifier
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MaxAbsScaler
@@ -93,17 +94,26 @@ def logistic_model() -> Pipeline:
     )
 
 
+# Char n-grams produce tens of thousands of columns, and a histogram-based
+# learner pays for every one of them at every split. chi2 keeps the columns that
+# actually separate the classes: training drops from minutes to seconds, and the
+# discarded n-grams were noise the trees were fitting anyway. All features are
+# non-negative, which is what chi2 requires.
+N_SELECTED_FEATURES = 4000
+
+
 def lightgbm_model() -> Pipeline:
     return Pipeline(
         [
             ("features", _vectoriser()),
+            ("select", SelectKBest(chi2, k=N_SELECTED_FEATURES)),
             (
                 "clf",
                 LGBMClassifier(
                     objective="multiclass",
                     num_class=3,
                     class_weight="balanced",
-                    n_estimators=300,
+                    n_estimators=500,
                     learning_rate=0.08,
                     num_leaves=31,
                     min_child_samples=10,

@@ -62,6 +62,8 @@ def pr_curve(bundle: dict) -> None:
 def feature_importance(bundle: dict) -> None:
     pipe = bundle["pipeline"]
     names = pipe.named_steps["features"].get_feature_names_out()
+    if "select" in pipe.named_steps:
+        names = names[pipe.named_steps["select"].get_support()]
     imp = pipe.named_steps["clf"].feature_importances_
     top = pd.Series(imp, index=names).sort_values(ascending=False).head(25).sort_values()
 

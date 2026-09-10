@@ -23,15 +23,20 @@ from urllib.parse import unquote_plus
 
 MAX_ROUNDS = 5
 
-JS_ESCAPE_RE = re.compile(r"\\[xu]\{?([0-9a-fA-F]{2,6})\}?")
+# Widths are exact on purpose: \x takes two hex digits and \u takes four.
+# A loose {2,6} would swallow following text -- "\\u0020FROM" would match six
+# digits ("0020FR") and decode to a single wrong character instead of a space
+# followed by "FROM". Only the braced form \u{...} has a variable width.
+JS_ESCAPE_RE = re.compile(r"\\x([0-9a-fA-F]{2})|\\u\{([0-9a-fA-F]{1,6})\}|\\u([0-9a-fA-F]{4})")
 SQL_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
 DATA_URI_B64_RE = re.compile(r"data:[^;,]*;base64,([A-Za-z0-9+/=]{8,})", re.IGNORECASE)
 
 
 def _js_unescape(text: str) -> str:
     def sub(m: re.Match[str]) -> str:
+        digits = m.group(1) or m.group(2) or m.group(3)
         try:
-            return chr(int(m.group(1), 16))
+            return chr(int(digits, 16))
         except (ValueError, OverflowError):
             return m.group(0)
 
