@@ -11,6 +11,15 @@ from pathlib import Path
 
 REPORTS = Path("reports")
 MODEL_ORDER = ["rule_baseline", "logreg", "lightgbm"]
+FAMILY = {
+    "case_flip": "encoding", "url_encode": "encoding",
+    "double_url_encode": "encoding", "html_entity_encode": "encoding",
+    "js_unicode_escape": "encoding", "fullwidth": "encoding",
+    "space_to_comment": "sql syntax", "mysql_version_comment": "sql syntax",
+    "space_to_tab": "whitespace", "space_to_newline": "whitespace",
+    "char_function": "literal", "hex_literal": "literal",
+    "concat_quotes": "literal",
+}
 LABELS = {
     "rule_baseline": "Rule baseline (v0 heuristic)",
     "logreg": "LogReg + char n-grams",
@@ -69,6 +78,32 @@ def operating_points_table(metrics: dict) -> str:
     return "\n".join(lines)
 
 
+def robustness_table() -> str:
+    """Bypass rate per transform, before and after the normaliser was hardened."""
+    current = json.loads((REPORTS / "robustness.json").read_text())
+    baseline_path = REPORTS / "robustness_baseline.json"
+    baseline = json.loads(baseline_path.read_text()) if baseline_path.exists() else {}
+
+    header = ["Transform", "Family", "Bypass before", "Bypass after", "Change"]
+    lines = [_row(header), _row(["---"] * len(header))]
+
+    for name, m in current.items():
+        if name == "none":
+            continue
+        after = m["bypass_rate"]
+        before = baseline.get(name, {}).get("bypass_rate")
+        if before is None:
+            before_s, change = "—", "new"
+        else:
+            before_s = f"{before:.1%}"
+            delta = before - after
+            change = "—" if abs(delta) < 0.005 else f"{'-' if delta > 0 else '+'}{abs(delta):.1%}"
+        lines.append(_row([
+            f"`{name}`", FAMILY.get(name, ""), before_s, f"{after:.1%}", change,
+        ]))
+    return "\n".join(lines)
+
+
 def main() -> None:
     metrics = json.loads((REPORTS / "metrics.json").read_text())
     final = metrics["FINAL_TEST"]
@@ -96,6 +131,8 @@ def main() -> None:
         ),
         f"- Corpus discrimination accuracy: **{leak:.3f}**",
     ]
+    if (REPORTS / "robustness.json").exists():
+        out += ["\n## Robustness to obfuscation\n", robustness_table()]
     text = "\n".join(out)
     (REPORTS / "tables.md").write_text(text + "\n")
     print(text)
