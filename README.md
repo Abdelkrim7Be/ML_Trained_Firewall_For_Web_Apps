@@ -350,9 +350,93 @@ why nothing in it could be tested or deployed.
 
 See [`models/MODEL_CARD.md`](models/MODEL_CARD.md) for the full card.
 
-## Next
+## Part 2: the firewall
 
-The classifier is the first half. The second half is the proxy that uses it:
-inline blocking with a real `403`, POST/header/cookie inspection, structured
-per-request logging, and a Docker Compose demo against a deliberately vulnerable
-app. That is what turns a model into a firewall.
+The classifier decides; the firewall acts. `src/mlwaf/waf/` puts the model inline
+in a reverse proxy that refuses requests, with an operator console to see why.
+
+```sh
+docker compose up --build
+```
+
+| | |
+|---|---|
+| http://localhost:8080 | OWASP Juice Shop, behind the firewall |
+| http://localhost:8080/_waf | the operator console |
+| http://localhost:3000 | Juice Shop directly, for comparison |
+
+```
+$ curl -i "localhost:8080/rest/products/search?q=1%27+UNION+SELECT+1,2,3--"
+HTTP/1.1 403 Forbidden
+X-MLWAF-Action: block
+{"error":"request_blocked","request_id":"f6d2367e-00000002"}
+```
+
+Full walkthrough, including the sqlmap comparison, in [`docs/DEMO.md`](docs/DEMO.md).
+Design and the reasoning behind it in [`docs/WAF_PLAN.md`](docs/WAF_PLAN.md).
+
+### Every decision is explainable
+
+Most firewalls answer "blocked" and stop, which leaves an operator unable to tell
+an attack from a false positive. This one records how the payload came apart:
+
+```
+raw               id=1%2527%2520UNION%2520SELECT%2520password%2520FROM%2520users--
+decode round 1    id=1%27%20UNION%20SELECT%20password%20FROM%20users--
+decode round 2    id=1' UNION SELECT password FROM users--
+unicode and case  id=1' union select password from users--
+```
+
+and which fragments drove the score, from LightGBM's exact per feature SHAP
+values:
+
+```
+users  +1.44    uni  +0.84    lect  +0.82
+```
+
+### The threshold is a control, not a constant
+
+Every stored decision keeps its score, so moving the console's threshold slider
+recomputes verdicts over real recent traffic and reports what would change before
+anything is applied. Part 1's false positive budget becomes something an operator
+can feel rather than a number in a table.
+
+### Serving is not training
+
+Scoring one request through the training pipeline took about 200ms, which is
+unusable inline: pandas construction and sklearn validation cost the same whether
+the batch holds one row or three thousand. `waf/scorer.py` extracts the fitted
+vectoriser, scaler, selection mask and booster and calls them directly.
+
+| | per request |
+|---|---|
+| through the sklearn pipeline | ~274 ms |
+| through the serving path | ~10 ms |
+
+Identical scores, asserted to `1e-12` in `tests/waf/test_scorer.py`. Measured live
+over 288 requests: mean **6.3 ms**, 99% under 10 ms, no timeouts.
+
+### Production behaviour
+
+- **Detect mode by default.** A WAF is rolled out by watching what it would have
+  blocked, reviewing that queue, then enforcing. Shipping something that blocks on
+  first run is how you get switched off after one false positive.
+- **Fail open, and alert.** If scoring raises or exceeds its budget, the request is
+  allowed and counted as unscored. A broken model must not become an outage.
+  `WAF_FAIL_MODE=closed` inverts it.
+- **Bounded bodies.** Read up to 1 MB for scoring, streamed through untouched
+  beyond that. A proxy that buffers unbounded uploads is the outage it was meant
+  to prevent.
+- Non root container, readiness gated on a warmed model, Prometheus metrics,
+  structured JSON logs with a request id, graceful drain.
+
+### What v0 did instead
+
+```python
+if result['Cluster'][0] == "Cluster 1":
+    print('Intrusion Detected !')
+```
+
+It printed, then forwarded the request anyway, and read GET paths only, so POST
+bodies were never inspected. `tests/waf/test_proxy.py` asserts the difference: the
+fake upstream records every request it receives, and after an attack it is empty.
