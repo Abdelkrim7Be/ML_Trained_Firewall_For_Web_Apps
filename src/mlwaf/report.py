@@ -139,6 +139,36 @@ def error_summary() -> str:
     return "\n".join(lines) + f"\n\nMiss rate by class: {rates}."
 
 
+def stability_table() -> str:
+    """Mean +/- std across seeds. A difference smaller than the spread is not a result."""
+    data = json.loads((REPORTS / "stability.json").read_text())
+    summary, seeds = data["summary"], data["seeds"]
+
+    metrics = ["macro_f1", "binary_pr_auc", "sqli_recall", "xss_recall",
+               "recall_at_budget", "unseen_recall"]
+    header = ["Model", *[m.replace("_", " ") for m in metrics]]
+    lines = [_row(header), _row(["---"] * len(header))]
+    for name, stats in summary.items():
+        cells = [f"`{name}`"]
+        cells += [f"{stats[m]['mean']:.3f} ± {stats[m]['std']:.3f}" for m in metrics]
+        lines.append(_row(cells))
+    return f"Across {len(seeds)} seeds.\n\n" + "\n".join(lines)
+
+
+def external_summary() -> str:
+    e = json.loads((REPORTS / "external.json").read_text())
+    o = e["overall"]
+    header = ["Attack family", "Recall", "Caught"]
+    lines = [_row(header), _row(["---"] * len(header))]
+    for fam, m in e["by_family"].items():
+        label = f"`{fam}`" + ("" if fam in ("sqli", "xss") else " *(never trained)*")
+        lines.append(_row([label, f"{m['recall']:.3f}", f"{m['caught']}/{m['n']}"]))
+    return (
+        f"Overall recall **{o['recall']:.3f}** ({o['caught']}/{o['n']}) on "
+        f"third-party obfuscated payloads.\n\n" + "\n".join(lines)
+    )
+
+
 def main() -> None:
     metrics = json.loads((REPORTS / "metrics.json").read_text())
     final = metrics["FINAL_TEST"]
@@ -172,6 +202,10 @@ def main() -> None:
         out += ["\n## Adversarial training\n", adversarial_table()]
     if (REPORTS / "errors.json").exists():
         out += ["\n## What it misses\n", error_summary()]
+    if (REPORTS / "stability.json").exists():
+        out += ["\n## Stability across seeds\n", stability_table()]
+    if (REPORTS / "external.json").exists():
+        out += ["\n## Independent benchmark\n", external_summary()]
     text = "\n".join(out)
     (REPORTS / "tables.md").write_text(text + "\n")
     print(text)
