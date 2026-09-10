@@ -1,6 +1,6 @@
 VENV := .venv/bin
 
-.PHONY: install data train plots report test e2e lint notebook \
+.PHONY: install data train plots report test e2e lint notebook benchmark \
         robustness errors adversarial external stability all evaluate clean
 
 install:
@@ -26,6 +26,9 @@ external:              ## 646 third-party obfuscated payloads
 
 adversarial:           ## train on 4 transforms, score on 9 held out
 	$(VENV)/python -m mlwaf.adversarial
+
+benchmark:             ## score against a real web server trace and outside payloads
+	$(VENV)/python -m mlwaf.waf.benchmark
 
 stability:             ## refit across 5 seeds; slow, run before design changes
 	$(VENV)/python -m mlwaf.stability

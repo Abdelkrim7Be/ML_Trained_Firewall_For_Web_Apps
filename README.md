@@ -452,6 +452,25 @@ attack payloads were left intact. Real English words therefore appear almost onl
 inside attacks, and no split of that corpus can reveal the problem because the held
 out benign traffic is randomised too.
 
+Scored against the [NASA Kennedy Space Center HTTP trace](https://ita.ee.lbl.gov/html/contrib/NASA-HTTP.html),
+two months of requests to a real public web server, the picture is worse and
+clearer. **339 of 21,167 real requests were refused, a false positive rate of
+1.60%** against the 0.1% the corpus reported. The words driving those refusals:
+
+```
+shuttle 336    missions 326    sts 287    images 87
+movies   68    sounds    59    news  55    docs   39
+```
+
+Nothing to do with SQL injection. They are the words that appear in the URLs of a
+website about space shuttles. The model treats any ordinary English word in a URL
+as evidence of an attack, because in its training data that is the only place one
+ever appeared.
+
+Recall on 2,695 community payloads, including libinjection's bypass corpus, holds
+at 0.78 for SQLi and 0.83 for XSS. So the model recognises attacks reasonably and
+fails to recognise that ordinary traffic is not one.
+
 It explains the part 1 numbers that looked merely disappointing: 0.147 recall
 cross corpus, 0.209 on unseen attack types, corpus separability 1.000. Those were
 symptoms; this is the mechanism. Full write up, including the payloads that get

@@ -1,0 +1,440 @@
+{
+  "threshold": 0.9626296974244156,
+  "false_positives": {
+    "requests": 21167,
+    "flagged": 339,
+    "false_positive_rate": 0.016015,
+    "requests_per_second": 218.5,
+    "top_tokens_in_flagged": [
+      [
+        "shuttle",
+        336
+      ],
+      [
+        "missions",
+        326
+      ],
+      [
+        "sts",
+        287
+      ],
+      [
+        "images",
+        87
+      ],
+      [
+        "movies",
+        68
+      ],
+      [
+        "sounds",
+        59
+      ],
+      [
+        "news",
+        55
+      ],
+      [
+        "docs",
+        39
+      ],
+      [
+        "mission",
+        10
+      ],
+      [
+        "html",
+        8
+      ],
+      [
+        "txt",
+        6
+      ],
+      [
+        "com",
+        5
+      ],
+      [
+        "captions",
+        5
+      ],
+      [
+        "status",
+        4
+      ],
+      [
+        "www",
+        3
+      ]
+    ],
+    "examples": [
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-78/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-77/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-76/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-75/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-74/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-73/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-72/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-71/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-70/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-69/test/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-69/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-68/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-67/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-66/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-65/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-64/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-63/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-62/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-61/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-60/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-59/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-58/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-57/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-56/news/",
+        "query": ""
+      },
+      {
+        "score": 0.9995,
+        "method": "GET",
+        "path": "/shuttle/missions/sts-55/news/",
+        "query": ""
+      }
+    ],
+    "near_misses": 948
+  },
+  "recall": {
+    "sqli": {
+      "payloads": 759,
+      "caught": 595,
+      "recall": 0.7839,
+      "missed_examples": [
+        {
+          "score": 0.0002,
+          "payload": "!"
+        },
+        {
+          "score": 0.0036,
+          "payload": "\" \""
+        },
+        {
+          "score": 0.9437,
+          "payload": "\" or \"\" \""
+        },
+        {
+          "score": 0.9384,
+          "payload": "\" or \"\"&\""
+        },
+        {
+          "score": 0.9384,
+          "payload": "\" or \"\"*\""
+        },
+        {
+          "score": 0.9384,
+          "payload": "\" or \"\"-\""
+        },
+        {
+          "score": 0.9384,
+          "payload": "\" or \"\"^\""
+        },
+        {
+          "score": 0.949,
+          "payload": "\" or \"x\"=\"x"
+        },
+        {
+          "score": 0.942,
+          "payload": "\" or 0=0 --"
+        },
+        {
+          "score": 0.8865,
+          "payload": "\" or 1=1--"
+        },
+        {
+          "score": 0.925,
+          "payload": "\" or true--"
+        },
+        {
+          "score": 0.0035,
+          "payload": "\"&\""
+        },
+        {
+          "score": 0.9251,
+          "payload": "\") or true--"
+        },
+        {
+          "score": 0.0035,
+          "payload": "\"*\""
+        },
+        {
+          "score": 0.0035,
+          "payload": "\"-\""
+        },
+        {
+          "score": 0.0035,
+          "payload": "\"^\""
+        },
+        {
+          "score": 0.0001,
+          "payload": "%20$(sleep%2050)"
+        },
+        {
+          "score": 0.0017,
+          "payload": "%20'sleep%2050'"
+        },
+        {
+          "score": 0.9372,
+          "payload": "%20or%20x=x"
+        },
+        {
+          "score": 0.0001,
+          "payload": "%21"
+        },
+        {
+          "score": 0.0001,
+          "payload": "%26"
+        },
+        {
+          "score": 0.0001,
+          "payload": "%28"
+        },
+        {
+          "score": 0.0001,
+          "payload": "%29"
+        },
+        {
+          "score": 0.0002,
+          "payload": "%2A%28%7C%28mail%3D%2A%29%29"
+        },
+        {
+          "score": 0.0041,
+          "payload": "%2A%28%7C%28objectclass%3D%2A%29%29"
+        }
+      ]
+    },
+    "xss": {
+      "payloads": 1936,
+      "caught": 1599,
+      "recall": 0.8259,
+      "missed_examples": [
+        {
+          "score": 0.9515,
+          "payload": "\"><a fooooooooooooooooooooooooooooooooo href=JaVAScript%26colon%3Bprompt%26lpar%3B1%26rpar%3B%>"
+        },
+        {
+          "score": 0.0106,
+          "payload": "$=document,$=$.URL,$$=unescape,$$$=eval,$$$($$($))"
+        },
+        {
+          "score": 0.0036,
+          "payload": "$_=document,$__=$_.URL,$___=unescape,$_=$_.body,$_.innerHTML = $___(http=$__)"
+        },
+        {
+          "score": 0.0019,
+          "payload": "%3C"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#0000060"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#000060"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#00060"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#0060"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#060"
+        },
+        {
+          "score": 0.3501,
+          "payload": "&#13;<blink/&#13; onmouseover=pr&#x6F;mp&#116;(1)>OnMouseOver {Firefox & Opera}"
+        },
+        {
+          "score": 0.0019,
+          "payload": "&#39;&#88;&#83;&#83;&#39;&#41;>"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#60"
+        },
+        {
+          "score": 0.9283,
+          "payload": "&#60;IMG SRC&#61;&#34;mocha&#58;&#91;code&#93;&#34;&#62;"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#X000003C"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#X000003C;"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#X000003c"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#X000003c;"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#X00003C"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#X00003C;"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#X00003c"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#X00003c;"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#X0003C"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#X0003C;"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#X0003c"
+        },
+        {
+          "score": 0.0037,
+          "payload": "&#X0003c;"
+        }
+      ]
+    }
+  }
+}

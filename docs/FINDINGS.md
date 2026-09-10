@@ -222,3 +222,96 @@ defect. The fixture now shares a pooled client. It is worth recording because th
 failure mode was convincing: a benchmark that is wrong in this direction makes a
 healthy system look broken, and the temptation is to go and optimise the wrong
 thing.
+
+
+---
+
+# Measured against a million real requests
+
+Everything above used either the training corpus or payloads chosen by hand. This
+section uses neither. `mlwaf.waf.benchmark` scores the model against the
+[NASA Kennedy Space Center HTTP trace](https://ita.ee.lbl.gov/html/contrib/NASA-HTTP.html),
+two months of requests to a real public web server in 1995, and against community
+maintained attack payload lists including libinjection's bypass corpus. Neither
+was involved in training, and neither was assembled by anyone with an interest in
+this model looking good.
+
+## False positive rate on real traffic: 1.60%
+
+21,167 distinct requests from the trace. **339 were refused.**
+
+Part 1 reported a false positive rate of 0.1%, chosen deliberately against a
+budget. On real traffic it is **sixteen times worse**.
+
+At 1.6%, roughly one legitimate request in sixty is blocked. On a site serving a
+million requests a day that is sixteen thousand refusals, every day, none of them
+attacks.
+
+The requests it refuses are not unusual:
+
+```
+0.9995  GET /shuttle/missions/sts-78/news/
+0.9995  GET /shuttle/missions/sts-77/news/
+0.9995  GET /shuttle/missions/sts-76/news/
+0.9995  GET /shuttle/missions/sts-69/test/
+```
+
+## The cause, stated plainly
+
+Counting which words appear in the refused requests answers it immediately:
+
+| Token | Appearances among refused requests |
+|---|---|
+| shuttle | 336 |
+| missions | 326 |
+| sts | 287 |
+| images | 87 |
+| movies | 68 |
+| sounds | 59 |
+| news | 55 |
+| docs | 39 |
+
+None of these has anything to do with SQL injection. They are simply the words
+that appear in the URLs of a website about space shuttles.
+
+The earlier finding about the token `users` was not a quirk. It was one instance
+of the general case: **this model treats an ordinary English word in a URL as
+evidence of an attack.** ECML/PKDD's benign requests were sanitised into random
+strings like `/lqlehaRus4/wREtSesTncl9tln/`, so during training the only place a
+real word ever appeared was inside an attack payload. The model learned exactly
+what it was shown.
+
+No amount of held out corpus evaluation could have found this, because the held
+out benign traffic is randomised too. It took traffic from outside the corpus, and
+the cheapest possible source of it was a thirty year old public trace.
+
+## Recall on outside payloads
+
+| Payload family | Recall | Source |
+|---|---|---|
+| SQL injection | **0.784** | 759 payloads, including libinjection's bypass corpus |
+| XSS | **0.826** | 1,936 payloads |
+
+Recall holds up better than the false positive rate, and lands close to the 0.80
+measured on the corpus. That is the shape of the problem: the model is reasonable
+at recognising attacks and very bad at recognising that ordinary traffic is not
+one.
+
+Some misses are instructive. `" or "" "` scores 0.944, just under the line.
+Several XSS payloads that avoid conventional syntax entirely, such as
+`$=document,$=$.URL,$$=unescape,$$$=eval,$$$($$($))`, score near zero.
+
+## What this changes
+
+Nothing about the firewall, which behaves correctly throughout. It changes what
+can honestly be claimed about the model:
+
+- On traffic resembling its training corpus: 0.80 recall at 0.1% false positives.
+- On real traffic: 0.78 to 0.83 recall at **1.6%** false positives.
+
+The second pair is the one that matters, and it is not a deployable operating
+point. The fix is the one named earlier and it has not changed: the training data
+needs benign traffic that looks like benign traffic. A model cannot learn that
+`/shuttle/missions/` is ordinary if it has never seen an ordinary URL.
+
+Reproduce with `make benchmark`.
