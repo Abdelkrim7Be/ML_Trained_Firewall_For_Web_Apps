@@ -1,12 +1,46 @@
 # ML WAF — SQL injection and XSS detection in HTTP requests
 
 A supervised classifier that reads a full HTTP request — method, path, query and
-body — and decides whether it is benign, SQL injection, or XSS. Built to sit
-inline in a reverse proxy and refuse the requests it flags.
+body — and decides whether it is benign, SQL injection, or XSS. Built to sit inline
+in a reverse proxy and refuse the requests it flags.
 
-This is v1. The original student project (PFE, June 2024) is preserved at tag
-`v0.1-pfe`, and [`POSTMORTEM.md`](POSTMORTEM.md) documents why its 52% attack
-recall was measuring the wrong thing entirely.
+```
+$ mlwaf predict "/item?id=1%27+UNION+SELECT+password+FROM+users--"
+BLOCK  attack_score=1.0000  threshold=0.9626   sqli 1.0000
+
+$ mlwaf predict "/search?q=%3Cimg+src%3Dx+onerror%3Dalert%281%29%3E"
+BLOCK  attack_score=1.0000  threshold=0.9626   xss  1.0000
+
+$ mlwaf predict "/account" --method POST --body "name=O'Brien&city=Cork"
+ALLOW  attack_score=0.0056  threshold=0.9626   benign 0.9944
+```
+
+That last one is the point. It contains an apostrophe, so the previous version of
+this project blocked it — along with **52% of all legitimate traffic**.
+
+## Read this before the numbers
+
+This repository reports **0.80 recall** at a 0.1% false-positive rate. Search GitHub
+for "ML WAF" and you will find a hundred projects reporting 0.99, so it is worth
+being explicit about where the difference comes from. Reproduced here, in order,
+are the four things that turn 0.80 into 0.99 without improving a model at all:
+
+| Shortcut | What it does | Taken here? |
+|---|---|---|
+| Labels derived from the features | Model relearns a rule you wrote; accuracy approaches 100% by construction | No — labels are ECML/PKDD ground truth |
+| Random split without dedup | Near-identical rows land on both sides; the test set is half memorised | No — deduped before splitting (CSIC alone had 36,031 duplicates) |
+| Benign and attacks from different corpora | Model learns which *dataset* a row came from | No — one corpus, and the confound is measured (separability **1.000**) |
+| Threshold picked on the test set | Operating point chosen using the answers | No — fitted on validation, applied unchanged |
+
+The previous version of this project took the first shortcut, and
+[`POSTMORTEM.md`](POSTMORTEM.md) shows the arithmetic: its labels were a
+deterministic function of its own six features across all 45,233 rows, so its model
+could only rediscover a rule already written by hand — and it recovered it badly,
+catching 52% of attacks.
+
+Every number below is measured against a test split scored exactly once, plus three
+independent checks the model was never tuned on: five attack types held out of
+training, a separate 2010 corpus, and 646 third-party obfuscated payloads.
 
 ---
 
