@@ -70,16 +70,19 @@ def _char_tfidf(max_features: int) -> TfidfVectorizer:
 
 
 def _vectoriser() -> ColumnTransformer:
-    """URL and body get their own n-gram space.
+    """One n-gram space over the whole request, plus the numeric block.
 
-    Sharing one bag of n-grams across the whole request lets a long POST body
-    dilute a short payload, and the error analysis showed the cost: attacks
-    carrying a body were missed three times as often as those without one.
+    Giving the URL and the body separate vectorisers was tried, on the theory that
+    a long body dilutes a short payload -- the error analysis shows attacks
+    carrying a body are missed roughly three times as often. It did not work: the
+    miss rate for requests with a body was unchanged, and recall on attack types
+    held out of training fell from 0.34 to 0.21. The split is therefore not used.
+    The body is still described to the model through the `body_length`,
+    `body_ratio` and `has_body` numeric features, which cost nothing.
     """
     return ColumnTransformer(
         [
-            ("url_chars", _char_tfidf(40_000), "text_url"),
-            ("body_chars", _char_tfidf(20_000), "text_body"),
+            ("chars", _char_tfidf(50_000), "text"),
             ("nums", MaxAbsScaler(), NUMERIC_COLS),
         ]
     )

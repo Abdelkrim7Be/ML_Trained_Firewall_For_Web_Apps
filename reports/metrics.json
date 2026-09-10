@@ -1,0 +1,330 @@
+{
+  "rule_baseline": {
+    "model": "rule_baseline",
+    "macro_f1": 0.3348,
+    "per_class": {
+      "benign": {
+        "precision": 0.9401,
+        "recall": 0.4781,
+        "f1": 0.6338,
+        "support": 2100
+      },
+      "sqli": {
+        "precision": 0.2313,
+        "recall": 0.9319,
+        "f1": 0.3706,
+        "support": 455
+      },
+      "xss": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 346
+      }
+    },
+    "confusion_matrix": [
+      [
+        1004,
+        1096,
+        0
+      ],
+      [
+        31,
+        424,
+        0
+      ],
+      [
+        33,
+        313,
+        0
+      ]
+    ],
+    "binary_pr_auc": 0.392,
+    "binary_roc_auc": 0.6991,
+    "at_fpr": {
+      "0.001": {
+        "threshold": 1.0,
+        "recall": 0.9201,
+        "precision": 0.4021,
+        "fpr": 0.5219,
+        "tp": 737,
+        "fp": 1096,
+        "fn": 64,
+        "tn": 1004
+      },
+      "0.005": {
+        "threshold": 1.0,
+        "recall": 0.9201,
+        "precision": 0.4021,
+        "fpr": 0.5219,
+        "tp": 737,
+        "fp": 1096,
+        "fn": 64,
+        "tn": 1004
+      },
+      "0.010": {
+        "threshold": 1.0,
+        "recall": 0.9201,
+        "precision": 0.4021,
+        "fpr": 0.5219,
+        "tp": 737,
+        "fp": 1096,
+        "fn": 64,
+        "tn": 1004
+      }
+    },
+    "fit_seconds": 0.0,
+    "predict_ms_per_request": 0.0064
+  },
+  "logreg": {
+    "model": "logreg",
+    "macro_f1": 0.9094,
+    "per_class": {
+      "benign": {
+        "precision": 0.9332,
+        "recall": 0.9905,
+        "f1": 0.961,
+        "support": 2100
+      },
+      "sqli": {
+        "precision": 0.9606,
+        "recall": 0.8044,
+        "f1": 0.8756,
+        "support": 455
+      },
+      "xss": {
+        "precision": 0.9759,
+        "recall": 0.8208,
+        "f1": 0.8917,
+        "support": 346
+      }
+    },
+    "confusion_matrix": [
+      [
+        2080,
+        14,
+        6
+      ],
+      [
+        88,
+        366,
+        1
+      ],
+      [
+        61,
+        1,
+        284
+      ]
+    ],
+    "binary_pr_auc": 0.9062,
+    "binary_roc_auc": 0.9116,
+    "at_fpr": {
+      "0.001": {
+        "threshold": 0.725443,
+        "recall": 0.799,
+        "precision": 0.9969,
+        "fpr": 0.00095,
+        "tp": 640,
+        "fp": 2,
+        "fn": 161,
+        "tn": 2098
+      },
+      "0.005": {
+        "threshold": 0.610599,
+        "recall": 0.8127,
+        "precision": 0.9849,
+        "fpr": 0.00476,
+        "tp": 651,
+        "fp": 10,
+        "fn": 150,
+        "tn": 2090
+      },
+      "0.010": {
+        "threshold": 0.524008,
+        "recall": 0.8152,
+        "precision": 0.9688,
+        "fpr": 0.01,
+        "tp": 653,
+        "fp": 21,
+        "fn": 148,
+        "tn": 2079
+      }
+    },
+    "fit_seconds": 52.35,
+    "predict_ms_per_request": 0.8828
+  },
+  "lightgbm": {
+    "model": "lightgbm",
+    "macro_f1": 0.9157,
+    "per_class": {
+      "benign": {
+        "precision": 0.9373,
+        "recall": 0.9895,
+        "f1": 0.9627,
+        "support": 2100
+      },
+      "sqli": {
+        "precision": 0.9569,
+        "recall": 0.8286,
+        "f1": 0.8881,
+        "support": 455
+      },
+      "xss": {
+        "precision": 0.9828,
+        "recall": 0.8237,
+        "f1": 0.8962,
+        "support": 346
+      }
+    },
+    "confusion_matrix": [
+      [
+        2078,
+        17,
+        5
+      ],
+      [
+        78,
+        377,
+        0
+      ],
+      [
+        61,
+        0,
+        285
+      ]
+    ],
+    "binary_pr_auc": 0.9082,
+    "binary_roc_auc": 0.9119,
+    "at_fpr": {
+      "0.001": {
+        "threshold": 0.96263,
+        "recall": 0.8115,
+        "precision": 0.9969,
+        "fpr": 0.00095,
+        "tp": 650,
+        "fp": 2,
+        "fn": 151,
+        "tn": 2098
+      },
+      "0.005": {
+        "threshold": 0.743004,
+        "recall": 0.8227,
+        "precision": 0.9851,
+        "fpr": 0.00476,
+        "tp": 659,
+        "fp": 10,
+        "fn": 142,
+        "tn": 2090
+      },
+      "0.010": {
+        "threshold": 0.547868,
+        "recall": 0.8265,
+        "precision": 0.9693,
+        "fpr": 0.01,
+        "tp": 662,
+        "fp": 21,
+        "fn": 139,
+        "tn": 2079
+      }
+    },
+    "fit_seconds": 284.8,
+    "predict_ms_per_request": 1.0104
+  },
+  "FINAL_TEST": {
+    "model": "lightgbm",
+    "macro_f1": 0.9127,
+    "per_class": {
+      "benign": {
+        "precision": 0.9326,
+        "recall": 0.9948,
+        "f1": 0.9627,
+        "support": 2101
+      },
+      "sqli": {
+        "precision": 0.9707,
+        "recall": 0.8022,
+        "f1": 0.8785,
+        "support": 455
+      },
+      "xss": {
+        "precision": 0.993,
+        "recall": 0.8179,
+        "f1": 0.897,
+        "support": 346
+      }
+    },
+    "confusion_matrix": [
+      [
+        2090,
+        9,
+        2
+      ],
+      [
+        90,
+        365,
+        0
+      ],
+      [
+        61,
+        2,
+        283
+      ]
+    ],
+    "binary_pr_auc": 0.903,
+    "binary_roc_auc": 0.9117,
+    "at_fpr": {
+      "0.001": {
+        "threshold": 0.916485,
+        "recall": 0.8027,
+        "precision": 0.9969,
+        "fpr": 0.00095,
+        "tp": 643,
+        "fp": 2,
+        "fn": 158,
+        "tn": 2099
+      },
+      "0.005": {
+        "threshold": 0.543094,
+        "recall": 0.8115,
+        "precision": 0.9848,
+        "fpr": 0.00476,
+        "tp": 650,
+        "fp": 10,
+        "fn": 151,
+        "tn": 2091
+      },
+      "0.010": {
+        "threshold": 0.392489,
+        "recall": 0.814,
+        "precision": 0.9688,
+        "fpr": 0.01,
+        "tp": 652,
+        "fp": 21,
+        "fn": 149,
+        "tn": 2080
+      }
+    },
+    "generalisation": {
+      "unseen_attack_types": {
+        "n": 9724,
+        "caught": 2029,
+        "recall": 0.2087,
+        "threshold": 0.96263
+      },
+      "csic_cross_corpus": {
+        "threshold": 0.96263,
+        "recall": 0.1474,
+        "precision": 0.987,
+        "fpr": 0.00312,
+        "tp": 2271,
+        "fp": 30,
+        "fn": 13141,
+        "tn": 9592
+      }
+    },
+    "leakage_check": {
+      "source_discrimination_accuracy": 0.9997
+    },
+    "operating_threshold": 0.96263
+  }
+}

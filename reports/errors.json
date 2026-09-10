@@ -1,0 +1,77 @@
+{
+  "threshold": 0.96263,
+  "false_negatives": {
+    "n": 160,
+    "median_length": 221,
+    "median_decode_depth": 0.0,
+    "has_body": 0.431,
+    "median_sql_keywords": 0.0,
+    "median_xss_keywords": 0.0
+  },
+  "true_positives": {
+    "n": 641,
+    "median_length": 291,
+    "median_decode_depth": 1.0,
+    "has_body": 0.131,
+    "median_sql_keywords": 1.0,
+    "median_xss_keywords": 1.0
+  },
+  "false_positives": {
+    "n": 1,
+    "median_length": 34,
+    "median_decode_depth": 0.0,
+    "has_body": 0.0,
+    "median_sql_keywords": 0.0,
+    "median_xss_keywords": 1.0
+  },
+  "missed_by_class": {
+    "sqli": 98,
+    "xss": 62
+  },
+  "miss_rate_by_class": {
+    "sqli": 0.2154,
+    "xss": 0.1792
+  },
+  "examples": [
+    {
+      "label": "sqli",
+      "score": 0.0,
+      "text": "post /script@adgzvht.sh if0rimooezoae=5918014&2ehtc9toiaosun=tbhtpassg&al=snf0hetsoatlsalqs7services &tsfn=5meus&hsaogyi3=trnuinhq"
+    },
+    {
+      "label": "sqli",
+      "score": 0.0,
+      "text": "post /mrldu_vdjrqkn/tur7t7v5mh51.z350/i5e7j6m1.zipxbwi.nsf _homej.b9accept4x=ie$ heey etc&a9aplenhae97ts=iheotlsaformwindow.openaqo&tbrthermld6=158446"
+    },
+    {
+      "label": "sqli",
+      "score": 0.0001,
+      "text": "get /mu/h_8j1xsr1tvblijvl3o/hw/s6y1iub/8noebtat/ppctnssmenoke5/dhhxt1o/sg_hjuuv/cltoz/m3j6hk_hhomjcdl/meci.png euelmoserl=46&oioejneduc=kttot&e-m0&or7"
+    },
+    {
+      "label": "sqli",
+      "score": 0.0001,
+      "text": "get /tji2uw0jkmbmvhm/e251.jsp omairnebay=53&uhp=nxochildy4lnce&tekelustp=ooah9tut20e&sihagettlahn2s=hs8&epeqtuc-=3667509&ahomrollal4rw=etocx5&dfhupass"
+    },
+    {
+      "label": "sqli",
+      "score": 0.0001,
+      "text": "get /onraerrgienvntor/ewnjmogbdp7/ljhwp-1yhqu1hvo/ervqp5z8vkl/dnej/sw7ttnw1gv3osi/5tetgdr4oaati/rewaeemednenae/3lzmub90xu673cz/rhecznsiliddl/dbgigxjq."
+    },
+    {
+      "label": "sqli",
+      "score": 0.0002,
+      "text": "get /rc2/t2iauc/ihetcc/synuolu/pw2nbksir/nodec7inputlpb8df/ddshtxelrsii/rn0ns0ytaltnltbct/dor5f0tzfnwqgaq/crdw9ba.css"
+    },
+    {
+      "label": "xss",
+      "score": 0.0002,
+      "text": "get /txraa/wtethciqneeb6nar/youu93gj.qrumqln3lli/eafsb/gk/rmeetqndaeutt1lo6a.php3 eos74rexduqo=7707358536&mqiaposl=bf@&mbifvcwpzl=15265&adolfmsdns=wio"
+    },
+    {
+      "label": "sqli",
+      "score": 0.0002,
+      "text": "put /n28zhy/tyqsngfr7/syqc1kjlnh8bu75bcisx/scoaehsh/ew@positiongb9qallwci/drhuh.nsf hokqc5y9xor=>en>aa<sfsivds:hiframe(se&mendcit=ui&ahob1stlpcnrren=m"
+    }
+  ]
+}

@@ -1,0 +1,239 @@
+{
+  "clean_test": {
+    "model": "lightgbm_adversarial",
+    "macro_f1": 0.9117,
+    "per_class": {
+      "benign": {
+        "precision": 0.9317,
+        "recall": 0.9933,
+        "f1": 0.9615,
+        "support": 2101
+      },
+      "sqli": {
+        "precision": 0.9733,
+        "recall": 0.8022,
+        "f1": 0.8795,
+        "support": 455
+      },
+      "xss": {
+        "precision": 0.9861,
+        "recall": 0.8179,
+        "f1": 0.8942,
+        "support": 346
+      }
+    },
+    "confusion_matrix": [
+      [
+        2087,
+        10,
+        4
+      ],
+      [
+        90,
+        365,
+        0
+      ],
+      [
+        63,
+        0,
+        283
+      ]
+    ],
+    "binary_pr_auc": 0.9053,
+    "binary_roc_auc": 0.9149,
+    "at_fpr": {
+      "0.001": {
+        "threshold": 0.889807,
+        "recall": 0.8027,
+        "precision": 0.9969,
+        "fpr": 0.00095,
+        "tp": 643,
+        "fp": 2,
+        "fn": 158,
+        "tn": 2099
+      },
+      "0.005": {
+        "threshold": 0.646335,
+        "recall": 0.8065,
+        "precision": 0.9848,
+        "fpr": 0.00476,
+        "tp": 646,
+        "fp": 10,
+        "fn": 155,
+        "tn": 2091
+      },
+      "0.010": {
+        "threshold": 0.323846,
+        "recall": 0.809,
+        "precision": 0.9686,
+        "fpr": 0.01,
+        "tp": 648,
+        "fp": 21,
+        "fn": 153,
+        "tn": 2080
+      }
+    }
+  },
+  "threshold": 0.929166,
+  "train_transforms": [
+    "case_flip",
+    "url_encode",
+    "space_to_tab",
+    "char_function"
+  ],
+  "held_out_transforms": [
+    "double_url_encode",
+    "html_entity_encode",
+    "js_unicode_escape",
+    "fullwidth",
+    "mysql_version_comment",
+    "space_to_comment",
+    "space_to_newline",
+    "hex_literal",
+    "concat_quotes"
+  ],
+  "robustness_before": {
+    "none": {
+      "recall": 0.8015,
+      "bypass_rate": 0.1985,
+      "seen_in_training": false
+    },
+    "case_flip": {
+      "recall": 0.8015,
+      "bypass_rate": 0.1985,
+      "seen_in_training": true
+    },
+    "url_encode": {
+      "recall": 0.804,
+      "bypass_rate": 0.196,
+      "seen_in_training": true
+    },
+    "space_to_tab": {
+      "recall": 0.8015,
+      "bypass_rate": 0.1985,
+      "seen_in_training": true
+    },
+    "char_function": {
+      "recall": 0.7903,
+      "bypass_rate": 0.2097,
+      "seen_in_training": true
+    },
+    "double_url_encode": {
+      "recall": 0.7978,
+      "bypass_rate": 0.2022,
+      "seen_in_training": false
+    },
+    "html_entity_encode": {
+      "recall": 0.8015,
+      "bypass_rate": 0.1985,
+      "seen_in_training": false
+    },
+    "js_unicode_escape": {
+      "recall": 0.804,
+      "bypass_rate": 0.196,
+      "seen_in_training": false
+    },
+    "fullwidth": {
+      "recall": 0.8027,
+      "bypass_rate": 0.1973,
+      "seen_in_training": false
+    },
+    "mysql_version_comment": {
+      "recall": 0.8015,
+      "bypass_rate": 0.1985,
+      "seen_in_training": false
+    },
+    "space_to_comment": {
+      "recall": 0.8015,
+      "bypass_rate": 0.1985,
+      "seen_in_training": false
+    },
+    "space_to_newline": {
+      "recall": 0.8015,
+      "bypass_rate": 0.1985,
+      "seen_in_training": false
+    },
+    "hex_literal": {
+      "recall": 0.7478,
+      "bypass_rate": 0.2522,
+      "seen_in_training": false
+    },
+    "concat_quotes": {
+      "recall": 0.8027,
+      "bypass_rate": 0.1973,
+      "seen_in_training": false
+    }
+  },
+  "robustness_after": {
+    "none": {
+      "recall": 0.8027,
+      "bypass_rate": 0.1973,
+      "seen_in_training": false
+    },
+    "case_flip": {
+      "recall": 0.8027,
+      "bypass_rate": 0.1973,
+      "seen_in_training": true
+    },
+    "url_encode": {
+      "recall": 0.804,
+      "bypass_rate": 0.196,
+      "seen_in_training": true
+    },
+    "space_to_tab": {
+      "recall": 0.8027,
+      "bypass_rate": 0.1973,
+      "seen_in_training": true
+    },
+    "char_function": {
+      "recall": 0.8052,
+      "bypass_rate": 0.1948,
+      "seen_in_training": true
+    },
+    "double_url_encode": {
+      "recall": 0.7965,
+      "bypass_rate": 0.2035,
+      "seen_in_training": false
+    },
+    "html_entity_encode": {
+      "recall": 0.804,
+      "bypass_rate": 0.196,
+      "seen_in_training": false
+    },
+    "js_unicode_escape": {
+      "recall": 0.804,
+      "bypass_rate": 0.196,
+      "seen_in_training": false
+    },
+    "fullwidth": {
+      "recall": 0.8027,
+      "bypass_rate": 0.1973,
+      "seen_in_training": false
+    },
+    "mysql_version_comment": {
+      "recall": 0.8027,
+      "bypass_rate": 0.1973,
+      "seen_in_training": false
+    },
+    "space_to_comment": {
+      "recall": 0.8027,
+      "bypass_rate": 0.1973,
+      "seen_in_training": false
+    },
+    "space_to_newline": {
+      "recall": 0.8027,
+      "bypass_rate": 0.1973,
+      "seen_in_training": false
+    },
+    "hex_literal": {
+      "recall": 0.7491,
+      "bypass_rate": 0.2509,
+      "seen_in_training": false
+    },
+    "concat_quotes": {
+      "recall": 0.8027,
+      "bypass_rate": 0.1973,
+      "seen_in_training": false
+    }
+  }
+}
