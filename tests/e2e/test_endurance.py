@@ -178,12 +178,12 @@ def test_a_stalled_console_does_not_block_traffic(waf):
     with (
         httpx.Client(base_url=waf.url, timeout=30.0, headers=AUTH) as c,
         c.stream("GET", "/_waf/stream") as _stalled,
+        httpx.Client(base_url=waf.url, timeout=60.0, headers=AUTH) as probe,
     ):
-        with httpx.Client(base_url=waf.url, timeout=60.0, headers=AUTH) as probe:
-            started = time.perf_counter()
-            for i in range(40):
-                assert probe.get(f"/api/flow?id={i}").status_code == 200
-            elapsed = time.perf_counter() - started
+        started = time.perf_counter()
+        for i in range(40):
+            assert probe.get(f"/api/flow?id={i}").status_code == 200
+        elapsed = time.perf_counter() - started
 
     assert elapsed < 45, "traffic stalled while a console was not reading"
 
@@ -210,7 +210,7 @@ def test_memory_does_not_run_away(waf, pooled):
     """A crude guard. The cache is bounded, so RSS should settle."""
     import os
 
-    import psutil  # noqa: PLC0415
+    import psutil
 
     proc = psutil.Process(waf.proc.pid) if waf.proc else None
     if proc is None or not hasattr(os, "getpid"):
