@@ -15,8 +15,19 @@ def bundle():
         pytest.skip(f"{MODEL} missing, run `make train` first")
 
 
-@pytest.fixture
-def engine(bundle):
-    e = Engine(Settings(mode="block"), bundle=dict(bundle))
+# Tests assert policy, not how fast this machine happens to be today. A real
+# budget belongs in production config; here it would only make the suite flaky
+# under load. The one test that exercises the budget sets its own.
+TEST_BUDGET_MS = 60_000.0
+
+
+def make_engine(bundle, **overrides) -> Engine:
+    overrides.setdefault("scoring_budget_ms", TEST_BUDGET_MS)
+    e = Engine(Settings(**overrides), bundle=dict(bundle))
     e.load()
     return e
+
+
+@pytest.fixture
+def engine(bundle):
+    return make_engine(bundle, mode="block")

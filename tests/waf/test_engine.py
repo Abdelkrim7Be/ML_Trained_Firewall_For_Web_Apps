@@ -2,8 +2,9 @@
 
 import pytest
 
-from mlwaf.waf.config import Settings
-from mlwaf.waf.engine import ALLOW, BLOCK, Engine, RequestView
+from mlwaf.waf.engine import ALLOW, BLOCK, RequestView
+
+from .conftest import make_engine
 
 SQLI = RequestView("GET", "/item", "id=1%27+UNION+SELECT+password+FROM+users--", "")
 XSS = RequestView("GET", "/search", "q=%3Cimg+src%3Dx+onerror%3Dalert%281%29%3E", "")
@@ -36,8 +37,7 @@ def test_allows_apostrophe_in_a_name(engine):
 
 
 def test_detect_mode_records_intent_without_enforcing(bundle):
-    e = Engine(Settings(mode="detect"), bundle=dict(bundle))
-    e.load()
+    e = make_engine(bundle, mode="detect")
     d = e.decide(SQLI)
     assert d.verdict == ALLOW          # nothing is refused
     assert d.would_block is True       # but the intent is recorded
@@ -53,8 +53,7 @@ def test_cache_returns_the_same_verdict(engine):
 
 
 def test_raising_model_fails_open_by_default(bundle):
-    e = Engine(Settings(mode="block", fail_mode="open"), bundle=dict(bundle))
-    e.load()
+    e = make_engine(bundle, mode="block", fail_mode="open")
     e._scorer = _Exploding()
     d = e.decide(SQLI)
     assert d.verdict == ALLOW
@@ -64,16 +63,14 @@ def test_raising_model_fails_open_by_default(bundle):
 
 
 def test_raising_model_can_fail_closed(bundle):
-    e = Engine(Settings(mode="block", fail_mode="closed"), bundle=dict(bundle))
-    e.load()
+    e = make_engine(bundle, mode="block", fail_mode="closed")
     e._scorer = _Exploding()
     assert e.decide(SQLI).verdict == BLOCK
 
 
 def test_exceeding_the_latency_budget_allows_the_request(bundle):
     """A slow model must cost protection, never availability."""
-    e = Engine(Settings(mode="block", scoring_budget_ms=0.0), bundle=dict(bundle))
-    e.load()
+    e = make_engine(bundle, mode="block", scoring_budget_ms=0.0)
     d = e.decide(SQLI)
     assert d.verdict == ALLOW
     assert d.reason == "over_budget"
@@ -90,6 +87,9 @@ def test_threshold_change_clears_the_cache(engine):
 
 
 def test_not_ready_until_loaded(bundle):
+    from mlwaf.waf.config import Settings
+    from mlwaf.waf.engine import Engine
+
     e = Engine(Settings(), bundle=dict(bundle))
     assert e.ready is False
     e.load()
