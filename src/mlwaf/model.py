@@ -60,8 +60,20 @@ class RuleBaseline(BaseEstimator, ClassifierMixin):
 
 
 def _char_tfidf(max_features: int) -> TfidfVectorizer:
+    """Character n-grams, deliberately not the `char_wb` variant.
+
+    `char_wb` only builds n-grams inside word boundaries and pads each word with
+    a space, which throws away the punctuation that separates an attack from a
+    word. SQL's `LIKE`, HTML's `<link>` and the surname `libel` all reduce to the
+    same n-gram " li", and the model duly scored `nombre=libel` as an injection
+    with the feature " li" contributing +7.1 on its own.
+
+    Plain `char` keeps the punctuation, so `'li`, `<li` and `lib` stay distinct.
+    For this task punctuation is most of the signal: it is what makes `1' OR 1=1--`
+    an attack and `1 or 2` a search query.
+    """
     return TfidfVectorizer(
-        analyzer="char_wb",
+        analyzer="char",
         ngram_range=(3, 5),
         min_df=3,
         sublinear_tf=True,
