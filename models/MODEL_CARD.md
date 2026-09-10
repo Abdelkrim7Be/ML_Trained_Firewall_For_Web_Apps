@@ -57,6 +57,24 @@ Two blocks are fused:
 Host, cookie and user-agent headers are deliberately excluded, because they
 identify the corpus rather than the attack.
 
+## Tried and rejected
+
+Recorded because a negative result is still a result, and the next person to have
+the same idea deserves the measurement rather than the intuition.
+
+**Separate n-gram spaces for URL and body.** The error analysis shows attacks
+carrying a POST body are missed roughly three times as often as those without one
+(0.43 of misses have a body, against 0.13 of catches). The obvious explanation is
+dilution: one bag of n-grams over the whole request lets a long body swamp a short
+payload. Splitting them into two vectorisers did not help. The miss rate for
+requests with a body was unchanged, and recall on attack types held out of training
+fell from 0.34 to 0.21. The split was reverted.
+
+The likelier explanation is that ECML's body payloads are simply harder: the
+sanitisation buried attack tokens inside random strings (`ntcebetween4oaenq`,
+`ghaving`), so many carry almost no recoverable signal. That is a property of the
+corpus, not of the feature layout.
+
 ## Evaluation
 
 Stratified 60/20/20 split. Models are compared on validation; the test split is
