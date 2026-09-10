@@ -1,0 +1,77 @@
+{
+  "threshold": 0.952455,
+  "false_negatives": {
+    "n": 157,
+    "median_length": 219,
+    "median_decode_depth": 0.0,
+    "has_body": 0.42,
+    "median_sql_keywords": 0.0,
+    "median_xss_keywords": 0.0
+  },
+  "true_positives": {
+    "n": 644,
+    "median_length": 291,
+    "median_decode_depth": 1.0,
+    "has_body": 0.135,
+    "median_sql_keywords": 1.0,
+    "median_xss_keywords": 1.0
+  },
+  "false_positives": {
+    "n": 3,
+    "median_length": 171,
+    "median_decode_depth": 0.0,
+    "has_body": 0.667,
+    "median_sql_keywords": 0.0,
+    "median_xss_keywords": 0.0
+  },
+  "missed_by_class": {
+    "sqli": 93,
+    "xss": 64
+  },
+  "miss_rate_by_class": {
+    "sqli": 0.2044,
+    "xss": 0.185
+  },
+  "examples": [
+    {
+      "label": "sqli",
+      "score": 0.0,
+      "text": "get /tji2uw0jkmbmvhm/e251.jsp omairnebay=53&uhp=nxochildy4lnce&tekelustp=ooah9tut20e&sihagettlahn2s=hs8&epeqtuc-=3667509&ahomrollal4rw=etocx5&dfhupass"
+    },
+    {
+      "label": "xss",
+      "score": 0.0,
+      "text": "get /otltonb3fd/enocss.asmx nroieoay=44121&7zfrompvdv=ntcebetween4oaenq&focsna6d=o tr@olirwlri>&ixhumpwwtsye=oe"
+    },
+    {
+      "label": "xss",
+      "score": 0.0,
+      "text": "get /i3rtb4vzk/lc3.exe .dgpasswdhk0_tmxhome=oo]"
+    },
+    {
+      "label": "sqli",
+      "score": 0.0,
+      "text": "get /mu/h_8j1xsr1tvblijvl3o/hw/s6y1iub/8noebtat/ppctnssmenoke5/dhhxt1o/sg_hjuuv/cltoz/m3j6hk_hhomjcdl/meci.png euelmoserl=46&oioejneduc=kttot&e-m0&or7"
+    },
+    {
+      "label": "sqli",
+      "score": 0.0,
+      "text": "get /n.vzobs1fx31@/niv5xmlautoexec/frtthjo/nodevwindow.openfromoysi8t/ekg5iyhedknm0/j2yihnymeont8i6n9fs6/q9_osock_streamn0wh3/bjbgujkfob/irqto.png"
+    },
+    {
+      "label": "sqli",
+      "score": 0.0001,
+      "text": "get /y3i4ffowosafmw9/rhxwhere/zaratoaynonfus/smrueoedhdre/r2.css nso=6&nshy=txsbmz4&vusjotsfo=replace>dymnwget ja&oadmin&kmzinyts=ghaving&oaw0aaosshec"
+    },
+    {
+      "label": "sqli",
+      "score": 0.0001,
+      "text": "get /rc2/t2iauc/ihetcc/synuolu/pw2nbksir/nodec7inputlpb8df/ddshtxelrsii/rn0ns0ytaltnltbct/dor5f0tzfnwqgaq/crdw9ba.css"
+    },
+    {
+      "label": "xss",
+      "score": 0.0001,
+      "text": "get /owp-@cfe/rznzo8dtj9qxe6v1.jpg x_krkok=4243072&oo@7qngu=loitt sgi&lptecrnasn8=eeky]hay1 atf&twptqei=564&8wvdsucdwh=c68nr&zrctsccri4krn=ie&slsfybt="
+    }
+  ]
+}

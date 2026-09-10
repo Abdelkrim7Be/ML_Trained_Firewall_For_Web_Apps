@@ -93,14 +93,23 @@ def char_function(text: str) -> str:
     return text.replace("'", "CHAR(39)").replace('"', "CHAR(34)")
 
 
+# A SQL string literal is short and self-contained. Matching any text between two
+# apostrophes is wrong on real traffic: sanitised corpora are full of stray quotes,
+# and a greedy match then swallows an entire query string -- separators and all --
+# producing a payload no attacker would ever send. Bounding the length and refusing
+# parameter separators keeps these transforms to literals that could plausibly
+# appear in a hand-written injection.
+MAX_LITERAL_LEN = 32
+_LITERAL_RE = re.compile(rf"'([^'&=?#]{{1,{MAX_LITERAL_LEN}}})'")
+
+
 def hex_literal(text: str) -> str:
     """Rewrite quoted strings as 0x hex literals, which MySQL accepts directly."""
 
     def sub(m: re.Match[str]) -> str:
-        inner = m.group(1)
-        return "0x" + inner.encode("utf-8", errors="replace").hex()
+        return "0x" + m.group(1).encode("utf-8", errors="replace").hex()
 
-    return re.sub(r"'([^']*)'", sub, text)
+    return _LITERAL_RE.sub(sub, text)
 
 
 def concat_quotes(text: str) -> str:
@@ -113,7 +122,7 @@ def concat_quotes(text: str) -> str:
         mid = len(inner) // 2
         return f"'{inner[:mid]}'+'{inner[mid:]}'"
 
-    return re.sub(r"'([^']*)'", sub, text)
+    return _LITERAL_RE.sub(sub, text)
 
 
 # Grouped so the report can say which family each result belongs to.
