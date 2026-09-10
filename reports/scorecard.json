@@ -1,0 +1,55 @@
+{
+  "sample": 2500,
+  "expectations": {
+    "NASA real traffic": "allow",
+    "CSIC benign": "allow",
+    "benign probes": "allow",
+    "CSIC attacks": "block",
+    "payloads sqli": "block",
+    "payloads xss": "block",
+    "attack probes": "block",
+    "evasions": "block"
+  },
+  "sizes": {
+    "NASA real traffic": 2500,
+    "CSIC benign": 2500,
+    "benign probes": 24,
+    "CSIC attacks": 2500,
+    "payloads sqli": 745,
+    "payloads xss": 800,
+    "attack probes": 15,
+    "evasions": 13
+  },
+  "results": {
+    "ecml": {
+      "NASA real traffic": 0.0248,
+      "CSIC benign": 0.002,
+      "benign probes": 0.125,
+      "CSIC attacks": 0.1432,
+      "payloads sqli": 0.7986577181208053,
+      "payloads xss": 0.8025,
+      "attack probes": 0.7333333333333333,
+      "evasions": 1.0
+    },
+    "traces_request": {
+      "NASA real traffic": 0.0,
+      "CSIC benign": 0.2056,
+      "benign probes": 0.25,
+      "CSIC attacks": 0.3416,
+      "payloads sqli": 0.9570469798657718,
+      "payloads xss": 1.0,
+      "attack probes": 1.0,
+      "evasions": 1.0
+    },
+    "traces_units": {
+      "NASA real traffic": 0.0,
+      "CSIC benign": 0.0092,
+      "benign probes": 0.041666666666666664,
+      "CSIC attacks": 0.1944,
+      "payloads sqli": 0.9624161073825503,
+      "payloads xss": 1.0,
+      "attack probes": 0.9333333333333333,
+      "evasions": 1.0
+    }
+  }
+}

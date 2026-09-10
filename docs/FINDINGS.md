@@ -402,3 +402,65 @@ than real application traffic. The traces are old, mostly static file serving, a
 carry few POST bodies, so bodies in the corpus are synthesised rather than
 observed. The next improvement is traffic captured from a real application, and
 the harness for that already exists as the Docker demo.
+
+
+---
+
+# Scorecard: three models, eight datasets
+
+One number at a time has misled this project repeatedly. `mlwaf.scorecard` scores
+every model on every dataset at once, which is the only view that has not.
+
+| Dataset | ECML | Real traces, per request | Real traces, per value |
+|---|---|---|---|
+| NASA real traffic (false positives) | 2.48% | 0.00% | **0.00%** |
+| CSIC benign, unseen site (false positives) | 0.20% | 20.56% | **0.92%** |
+| Adversarial benign probes (false positives) | 12.50% | 25.00% | **4.17%** |
+| SQL injection payloads (blocked) | 79.87% | 95.70% | **96.24%** |
+| XSS payloads (blocked) | 80.25% | 100% | **100%** |
+| Classic attack probes (blocked) | 73.33% | 100% | 93.33% |
+| Obfuscated attacks (blocked) | 100% | 100% | **100%** |
+
+Scoring per value wins or ties nearly everywhere. The one place it does not is the
+classic attack probes, where it misses `admin'#`.
+
+The ECML model's 0.20% on CSIC looks like the best result in that row and is not.
+It blocks 14% of CSIC's anomalous traffic and 80% of community payloads: it is not
+discriminating, it is declining to act.
+
+## A metric of mine that was wrong
+
+Earlier sections quote a "CSIC recall" of 15% to 38% and treat it as a weakness.
+It is not a meaningful number, and reporting it as one was a mistake.
+
+CSIC's anomalous class is mostly not SQL injection or XSS:
+
+```
+idA=2                                          parameter tampering
+nombre=Vino Rioja&precio=85&cantidad=76        a valid request, marked anomalous
+precio=100%2F                                  a typo in a price
+gisell*+a                                      a star in a name
+```
+
+The dataset's own documentation says as much: anomalous traffic includes parameter
+tampering and requests with deliberate typos. A detector for two attack classes
+should ignore those, and does. CSIC's benign half remains a genuinely useful test,
+because false positives there are real false positives. Its attack half is not a
+recall benchmark for this model, and the community payload lists are.
+
+## What is left
+
+Two failures survive, both narrow and both understood.
+
+**`nombre=libel` scores 1.000.** The n-gram `" li"` contributes over seven points
+toward "attack" on its own. `char_wb` pads word starts with a space, so SQL's
+`LIKE`, HTML's `<link>` and a surname beginning `li` share a feature. Switching to
+plain `char` n-grams removes the collision and was tried: false positives on CSIC
+went from 1.07% to 6.23% and SQL injection precision fell from 0.86 to 0.61, so it
+was reverted. The remedy is benign examples containing those fragments, not a
+different analyser.
+
+**`admin'#` scores 0.187 and is allowed.** A quote and a hash, seven characters.
+Scoring values in isolation is what makes the model site independent, and it is
+also what leaves a very short payload with too little to go on. This is the
+trade the architecture makes, stated rather than hidden.
