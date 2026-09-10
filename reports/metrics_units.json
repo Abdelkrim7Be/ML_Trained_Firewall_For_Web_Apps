@@ -102,18 +102,18 @@
   },
   "logreg": {
     "model": "logreg",
-    "macro_f1": 0.9836,
+    "macro_f1": 0.9825,
     "per_class": {
       "benign": {
         "precision": 0.9995,
-        "recall": 0.9997,
+        "recall": 0.9996,
         "f1": 0.9996,
         "support": 17173
       },
       "sqli": {
-        "precision": 0.9796,
+        "precision": 0.973,
         "recall": 0.9536,
-        "f1": 0.9664,
+        "f1": 0.9632,
         "support": 151
       },
       "xss": {
@@ -125,8 +125,8 @@
     },
     "confusion_matrix": [
       [
-        17167,
-        3,
+        17166,
+        4,
         3
       ],
       [
@@ -140,21 +140,21 @@
         259
       ]
     ],
-    "binary_pr_auc": 0.9961,
-    "binary_roc_auc": 0.9992,
+    "binary_pr_auc": 0.9965,
+    "binary_roc_auc": 0.9996,
     "at_fpr": {
       "0.001": {
-        "threshold": 0.209471,
-        "recall": 0.9806,
-        "precision": 0.9597,
+        "threshold": 0.188775,
+        "recall": 0.9855,
+        "precision": 0.9599,
         "fpr": 0.00099,
-        "tp": 405,
+        "tp": 407,
         "fp": 17,
-        "fn": 8,
+        "fn": 6,
         "tn": 17156
       },
       "0.005": {
-        "threshold": 0.05276,
+        "threshold": 0.037762,
         "recall": 0.9976,
         "precision": 0.829,
         "fpr": 0.00495,
@@ -164,7 +164,7 @@
         "tn": 17088
       },
       "0.010": {
-        "threshold": 0.026924,
+        "threshold": 0.023872,
         "recall": 0.9976,
         "precision": 0.7067,
         "fpr": 0.00996,
@@ -175,43 +175,43 @@
       }
     },
     "calibration": {
-      "brier_score": 0.0008,
-      "expected_calibration_error": 0.0028,
+      "brier_score": 0.0007,
+      "expected_calibration_error": 0.0024,
       "buckets": [
         {
           "range": [
             0.0,
             0.1
           ],
-          "n": 17138,
-          "mean_score": 0.0025,
-          "observed_attack_rate": 0.0002
+          "n": 17146,
+          "mean_score": 0.0023,
+          "observed_attack_rate": 0.0003
         },
         {
           "range": [
             0.1,
             0.2
           ],
-          "n": 25,
-          "mean_score": 0.131,
-          "observed_attack_rate": 0.16
+          "n": 16,
+          "mean_score": 0.1389,
+          "observed_attack_rate": 0.0625
         },
         {
           "range": [
             0.2,
             0.3
           ],
-          "n": 6,
-          "mean_score": 0.2426,
-          "observed_attack_rate": 0.0
+          "n": 8,
+          "mean_score": 0.2386,
+          "observed_attack_rate": 0.25
         },
         {
           "range": [
             0.3,
             0.4
           ],
-          "n": 3,
-          "mean_score": 0.3809,
+          "n": 1,
+          "mean_score": 0.3624,
           "observed_attack_rate": 0.0
         },
         {
@@ -220,7 +220,7 @@
             0.5
           ],
           "n": 3,
-          "mean_score": 0.4649,
+          "mean_score": 0.4495,
           "observed_attack_rate": 0.0
         },
         {
@@ -229,7 +229,7 @@
             0.6
           ],
           "n": 1,
-          "mean_score": 0.5768,
+          "mean_score": 0.5011,
           "observed_attack_rate": 0.0
         },
         {
@@ -237,18 +237,18 @@
             0.6,
             0.7
           ],
-          "n": 1,
-          "mean_score": 0.6243,
-          "observed_attack_rate": 1.0
+          "n": 2,
+          "mean_score": 0.6507,
+          "observed_attack_rate": 0.0
         },
         {
           "range": [
             0.7,
             0.8
           ],
-          "n": 3,
-          "mean_score": 0.7442,
-          "observed_attack_rate": 0.3333
+          "n": 2,
+          "mean_score": 0.7713,
+          "observed_attack_rate": 0.0
         },
         {
           "range": [
@@ -256,7 +256,7 @@
             0.9
           ],
           "n": 1,
-          "mean_score": 0.8931,
+          "mean_score": 0.8816,
           "observed_attack_rate": 1.0
         },
         {
@@ -264,29 +264,29 @@
             0.9,
             1.0
           ],
-          "n": 405,
-          "mean_score": 0.9983,
-          "observed_attack_rate": 0.9926
+          "n": 406,
+          "mean_score": 0.9982,
+          "observed_attack_rate": 0.9951
         }
       ]
     },
-    "fit_seconds": 6.91,
-    "predict_ms_per_request": 0.0272
+    "fit_seconds": 6.28,
+    "predict_ms_per_request": 0.0282
   },
   "lightgbm": {
     "model": "lightgbm",
-    "macro_f1": 0.9071,
+    "macro_f1": 0.9658,
     "per_class": {
       "benign": {
         "precision": 0.9995,
-        "recall": 0.9944,
-        "f1": 0.9969,
+        "recall": 0.9986,
+        "f1": 0.9991,
         "support": 17173
       },
       "sqli": {
-        "precision": 0.6017,
-        "recall": 0.9404,
-        "f1": 0.7339,
+        "precision": 0.872,
+        "recall": 0.947,
+        "f1": 0.9079,
         "support": 151
       },
       "xss": {
@@ -298,13 +298,13 @@
     },
     "confusion_matrix": [
       [
-        17076,
-        94,
+        17149,
+        21,
         3
       ],
       [
-        8,
-        142,
+        7,
+        143,
         1
       ],
       [
@@ -313,61 +313,52 @@
         261
       ]
     ],
-    "binary_pr_auc": 0.9921,
-    "binary_roc_auc": 0.9996,
+    "binary_pr_auc": 0.9949,
+    "binary_roc_auc": 0.9988,
     "at_fpr": {
       "0.001": {
-        "threshold": 0.651908,
-        "recall": 0.9758,
-        "precision": 0.9641,
-        "fpr": 0.00087,
-        "tp": 403,
-        "fp": 15,
-        "fn": 10,
-        "tn": 17158
+        "threshold": 0.676433,
+        "recall": 0.9806,
+        "precision": 0.9902,
+        "fpr": 0.00023,
+        "tp": 405,
+        "fp": 4,
+        "fn": 8,
+        "tn": 17169
       },
       "0.005": {
-        "threshold": 0.506381,
-        "recall": 0.9782,
-        "precision": 0.8596,
-        "fpr": 0.00384,
-        "tp": 404,
-        "fp": 66,
-        "fn": 9,
-        "tn": 17107
+        "threshold": 2.3e-05,
+        "recall": 0.9952,
+        "precision": 0.8286,
+        "fpr": 0.00495,
+        "tp": 411,
+        "fp": 85,
+        "fn": 2,
+        "tn": 17088
       },
       "0.010": {
-        "threshold": 0.000105,
-        "recall": 0.9927,
-        "precision": 0.7093,
-        "fpr": 0.00978,
-        "tp": 410,
-        "fp": 168,
-        "fn": 3,
-        "tn": 17005
+        "threshold": 9e-06,
+        "recall": 0.9952,
+        "precision": 0.7062,
+        "fpr": 0.00996,
+        "tp": 411,
+        "fp": 171,
+        "fn": 2,
+        "tn": 17002
       }
     },
     "calibration": {
-      "brier_score": 0.0027,
-      "expected_calibration_error": 0.0039,
+      "brier_score": 0.0012,
+      "expected_calibration_error": 0.0014,
       "buckets": [
         {
           "range": [
             0.0,
             0.1
           ],
-          "n": 17072,
+          "n": 17149,
           "mean_score": 0.0,
-          "observed_attack_rate": 0.0005
-        },
-        {
-          "range": [
-            0.1,
-            0.2
-          ],
-          "n": 6,
-          "mean_score": 0.1523,
-          "observed_attack_rate": 0.0
+          "observed_attack_rate": 0.0003
         },
         {
           "range": [
@@ -375,7 +366,7 @@
             0.3
           ],
           "n": 5,
-          "mean_score": 0.2304,
+          "mean_score": 0.2571,
           "observed_attack_rate": 0.2
         },
         {
@@ -383,9 +374,9 @@
             0.3,
             0.4
           ],
-          "n": 1,
-          "mean_score": 0.3991,
-          "observed_attack_rate": 0.0
+          "n": 2,
+          "mean_score": 0.3898,
+          "observed_attack_rate": 0.5
         },
         {
           "range": [
@@ -393,7 +384,7 @@
             0.5
           ],
           "n": 1,
-          "mean_score": 0.4296,
+          "mean_score": 0.4084,
           "observed_attack_rate": 0.0
         },
         {
@@ -401,8 +392,8 @@
             0.5,
             0.6
           ],
-          "n": 31,
-          "mean_score": 0.5064,
+          "n": 1,
+          "mean_score": 0.5938,
           "observed_attack_rate": 0.0
         },
         {
@@ -410,26 +401,26 @@
             0.6,
             0.7
           ],
-          "n": 53,
-          "mean_score": 0.6462,
-          "observed_attack_rate": 0.0377
+          "n": 19,
+          "mean_score": 0.6702,
+          "observed_attack_rate": 0.0
         },
         {
           "range": [
             0.7,
             0.8
           ],
-          "n": 13,
-          "mean_score": 0.7248,
-          "observed_attack_rate": 0.1538
+          "n": 1,
+          "mean_score": 0.7116,
+          "observed_attack_rate": 1.0
         },
         {
           "range": [
             0.8,
             0.9
           ],
-          "n": 2,
-          "mean_score": 0.8739,
+          "n": 4,
+          "mean_score": 0.8469,
           "observed_attack_rate": 1.0
         },
         {
@@ -437,29 +428,29 @@
             0.9,
             1.0
           ],
-          "n": 402,
-          "mean_score": 0.9993,
-          "observed_attack_rate": 0.99
+          "n": 404,
+          "mean_score": 0.9992,
+          "observed_attack_rate": 0.9901
         }
       ]
     },
-    "fit_seconds": 28.31,
-    "predict_ms_per_request": 0.0526
+    "fit_seconds": 29.3,
+    "predict_ms_per_request": 0.0389
   },
   "FINAL_TEST": {
     "model": "lightgbm",
-    "macro_f1": 0.9081,
+    "macro_f1": 0.9626,
     "per_class": {
       "benign": {
-        "precision": 0.9991,
-        "recall": 0.9942,
-        "f1": 0.9966,
+        "precision": 0.9992,
+        "recall": 0.9984,
+        "f1": 0.9988,
         "support": 17188
       },
       "sqli": {
-        "precision": 0.612,
-        "recall": 0.9273,
-        "f1": 0.7373,
+        "precision": 0.8611,
+        "recall": 0.9394,
+        "f1": 0.8986,
         "support": 165
       },
       "xss": {
@@ -471,13 +462,13 @@
     },
     "confusion_matrix": [
       [
-        17088,
-        97,
+        17160,
+        25,
         3
       ],
       [
-        12,
-        153,
+        10,
+        155,
         0
       ],
       [
@@ -486,70 +477,70 @@
         311
       ]
     ],
-    "binary_pr_auc": 0.988,
-    "binary_roc_auc": 0.9987,
+    "binary_pr_auc": 0.993,
+    "binary_roc_auc": 0.9996,
     "at_fpr": {
       "0.001": {
-        "threshold": 0.651908,
-        "recall": 0.9666,
-        "precision": 0.9546,
-        "fpr": 0.00128,
-        "tp": 463,
-        "fp": 22,
-        "fn": 16,
-        "tn": 17166
+        "threshold": 0.676433,
+        "recall": 0.9687,
+        "precision": 0.9851,
+        "fpr": 0.00041,
+        "tp": 464,
+        "fp": 7,
+        "fn": 15,
+        "tn": 17181
       },
       "0.005": {
-        "threshold": 0.506381,
-        "recall": 0.9687,
-        "precision": 0.8705,
-        "fpr": 0.00401,
-        "tp": 464,
-        "fp": 69,
-        "fn": 15,
-        "tn": 17119
+        "threshold": 2.3e-05,
+        "recall": 0.9896,
+        "precision": 0.8464,
+        "fpr": 0.005,
+        "tp": 474,
+        "fp": 86,
+        "fn": 5,
+        "tn": 17102
       },
       "0.010": {
-        "threshold": 0.000105,
+        "threshold": 9e-06,
         "recall": 0.9896,
-        "precision": 0.727,
-        "fpr": 0.01036,
+        "precision": 0.7441,
+        "fpr": 0.00948,
         "tp": 474,
-        "fp": 178,
+        "fp": 163,
         "fn": 5,
-        "tn": 17010
+        "tn": 17025
       }
     },
     "calibration": {
-      "brier_score": 0.0031,
-      "expected_calibration_error": 0.0042,
+      "brier_score": 0.0016,
+      "expected_calibration_error": 0.0019,
       "buckets": [
         {
           "range": [
             0.0,
             0.1
           ],
-          "n": 17097,
+          "n": 17168,
           "mean_score": 0.0,
-          "observed_attack_rate": 0.0007
+          "observed_attack_rate": 0.0006
         },
         {
           "range": [
             0.1,
             0.2
           ],
-          "n": 2,
-          "mean_score": 0.166,
-          "observed_attack_rate": 0.5
+          "n": 3,
+          "mean_score": 0.1492,
+          "observed_attack_rate": 0.6667
         },
         {
           "range": [
             0.2,
             0.3
           ],
-          "n": 3,
-          "mean_score": 0.2663,
-          "observed_attack_rate": 0.3333
+          "n": 1,
+          "mean_score": 0.298,
+          "observed_attack_rate": 0.0
         },
         {
           "range": [
@@ -557,7 +548,7 @@
             0.4
           ],
           "n": 1,
-          "mean_score": 0.37,
+          "mean_score": 0.3583,
           "observed_attack_rate": 1.0
         },
         {
@@ -565,36 +556,45 @@
             0.5,
             0.6
           ],
-          "n": 33,
-          "mean_score": 0.5073,
-          "observed_attack_rate": 0.0303
+          "n": 2,
+          "mean_score": 0.56,
+          "observed_attack_rate": 1.0
         },
         {
           "range": [
             0.6,
             0.7
           ],
-          "n": 47,
-          "mean_score": 0.6454,
-          "observed_attack_rate": 0.0213
+          "n": 23,
+          "mean_score": 0.6714,
+          "observed_attack_rate": 0.0
         },
         {
           "range": [
             0.7,
             0.8
           ],
-          "n": 20,
-          "mean_score": 0.7205,
-          "observed_attack_rate": 0.1
+          "n": 2,
+          "mean_score": 0.7259,
+          "observed_attack_rate": 1.0
+        },
+        {
+          "range": [
+            0.8,
+            0.9
+          ],
+          "n": 1,
+          "mean_score": 0.8777,
+          "observed_attack_rate": 1.0
         },
         {
           "range": [
             0.9,
             1.0
           ],
-          "n": 464,
-          "mean_score": 0.9995,
-          "observed_attack_rate": 0.9914
+          "n": 466,
+          "mean_score": 0.9993,
+          "observed_attack_rate": 0.9893
         }
       ]
     },
@@ -604,6 +604,6 @@
     "leakage_check": {
       "source_discrimination_accuracy": 0.9998
     },
-    "operating_threshold": 0.651908
+    "operating_threshold": 0.676433
   }
 }
