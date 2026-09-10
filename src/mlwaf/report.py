@@ -93,11 +93,11 @@ def robustness_table() -> str:
         after = m["bypass_rate"]
         before = baseline.get(name, {}).get("bypass_rate")
         if before is None:
-            before_s, change = "—", "new"
+            before_s, change = ", ", "new"
         else:
             before_s = f"{before:.1%}"
             delta = before - after
-            change = "—" if abs(delta) < 0.005 else f"{'-' if delta > 0 else '+'}{abs(delta):.1%}"
+            change = ", " if abs(delta) < 0.005 else f"{'-' if delta > 0 else '+'}{abs(delta):.1%}"
         lines.append(_row([
             f"`{name}`", FAMILY.get(name, ""), before_s, f"{after:.1%}", change,
         ]))

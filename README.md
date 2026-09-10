@@ -1,7 +1,7 @@
-# ML WAF — SQL injection and XSS detection in HTTP requests
+# ML WAF: SQL injection and XSS detection in HTTP requests
 
-A supervised classifier that reads a full HTTP request — method, path, query and
-body — and decides whether it is benign, SQL injection, or XSS. Built to sit inline
+A supervised classifier that reads a full HTTP request, method, path, query and
+body, and decides whether it is benign, SQL injection, or XSS. Built to sit inline
 in a reverse proxy and refuse the requests it flags.
 
 ```
@@ -16,7 +16,7 @@ ALLOW  attack_score=0.0056  threshold=0.9626   benign 0.9944
 ```
 
 That last one is the point. It contains an apostrophe, so the previous version of
-this project blocked it — along with **52% of all legitimate traffic**.
+this project blocked it, along with **52% of all legitimate traffic**.
 
 ## Read this before the numbers
 
@@ -27,15 +27,15 @@ are the four things that turn 0.80 into 0.99 without improving a model at all:
 
 | Shortcut | What it does | Taken here? |
 |---|---|---|
-| Labels derived from the features | Model relearns a rule you wrote; accuracy approaches 100% by construction | No — labels are ECML/PKDD ground truth |
-| Random split without dedup | Near-identical rows land on both sides; the test set is half memorised | No — deduped before splitting (CSIC alone had 36,031 duplicates) |
-| Benign and attacks from different corpora | Model learns which *dataset* a row came from | No — one corpus, and the confound is measured (separability **1.000**) |
-| Threshold picked on the test set | Operating point chosen using the answers | No — fitted on validation, applied unchanged |
+| Labels derived from the features | Model relearns a rule you wrote; accuracy approaches 100% by construction | No, labels are ECML/PKDD ground truth |
+| Random split without dedup | Near-identical rows land on both sides; the test set is half memorised | No, deduped before splitting (CSIC alone had 36,031 duplicates) |
+| Benign and attacks from different corpora | Model learns which *dataset* a row came from | No, one corpus, and the confound is measured (separability **1.000**) |
+| Threshold picked on the test set | Operating point chosen using the answers | No, fitted on validation, applied unchanged |
 
 The previous version of this project took the first shortcut, and
 [`POSTMORTEM.md`](POSTMORTEM.md) shows the arithmetic: its labels were a
 deterministic function of its own six features across all 45,233 rows, so its model
-could only rediscover a rule already written by hand — and it recovered it badly,
+could only rediscover a rule already written by hand, and it recovered it badly,
 catching 52% of attacks.
 
 Every number below is measured against a test split scored exactly once, plus three
@@ -81,14 +81,14 @@ scored once, at the end.
 
 ![confusion matrix](reports/confusion_matrix.png)
 
-The rule baseline row is the honest headline. It is v0's heuristic — flag anything
-containing a quote, dash, paren, space or SQL keyword — and it catches 93% of SQL
+The rule baseline row is the honest headline. It is v0's heuristic, flag anything
+containing a quote, dash, paren, space or SQL keyword, and it catches 93% of SQL
 injection. It also blocks **52% of legitimate traffic**, and has no concept of XSS
 at all, which is why its macro-F1 is 0.335. Beating it is not about finding more
 attacks; it is about not destroying the site in the process.
 
 Note what the generalisation numbers say. Recall on the five attack types held out
-of training is 0.209, and on CSIC 2010 it is 0.147 — both far below the 0.803 on
+of training is 0.209, and on CSIC 2010 it is 0.147, both far below the 0.803 on
 matched traffic. The corpus discrimination check explains the second one: a
 throwaway classifier separates ECML from CSIC requests with **1.000** accuracy, so
 the two corpora share almost no surface structure and that number measures domain
@@ -102,23 +102,23 @@ payload does but change how it looks, and counted again.
 
 | Transform | Family | Bypass before | Bypass after | Change |
 | --- | --- | --- | --- | --- |
-| `case_flip` | encoding | 0.0% | 0.0% | — |
-| `url_encode` | encoding | 0.1% | 0.0% | — |
-| `double_url_encode` | encoding | 0.3% | 0.3% | — |
-| `html_entity_encode` | encoding | 0.0% | 0.0% | — |
-| `js_unicode_escape` | encoding | 0.1% | 0.0% | — |
-| `fullwidth` | encoding | 0.0% | 0.0% | — |
-| `mysql_version_comment` | sql syntax | — | 0.0% | new |
+| `case_flip` | encoding | 0.0% | 0.0% | ,  |
+| `url_encode` | encoding | 0.1% | 0.0% | ,  |
+| `double_url_encode` | encoding | 0.3% | 0.3% | ,  |
+| `html_entity_encode` | encoding | 0.0% | 0.0% | ,  |
+| `js_unicode_escape` | encoding | 0.1% | 0.0% | ,  |
+| `fullwidth` | encoding | 0.0% | 0.0% | ,  |
+| `mysql_version_comment` | sql syntax | ,  | 0.0% | new |
 | `space_to_comment` | sql syntax | 20.5% | 0.0% | -20.5% |
 | `space_to_tab` | whitespace | 4.8% | 0.0% | -4.8% |
 | `space_to_newline` | whitespace | 5.1% | 0.0% | -5.1% |
 | `char_function` | literal | 6.5% | 1.4% | -5.1% |
 | `hex_literal` | literal | 35.1% | 6.7% | -28.4% |
-| `concat_quotes` | literal | 0.0% | 0.0% | — |
+| `concat_quotes` | literal | 0.0% | 0.0% | ,  |
 
 The `encoding` family is what the normalisation chain exists to undo, so a non-zero
 bypass there is a bug in `decode.py`, not a property of the model. That is how the
-chain is tested — and how three real defects were found and fixed:
+chain is tested, and how three real defects were found and fixed:
 
 | Defect | Symptom | Cost |
 |---|---|---|
@@ -128,7 +128,7 @@ chain is tested — and how three real defects were found and fixed:
 
 A fourth finding was about the harness rather than the model: the `hex_literal`
 transform was matching across stray apostrophes in ECML's sanitised noise and
-hex-encoding entire query strings, separators included — payloads no attacker would
+hex-encoding entire query strings, separators included, payloads no attacker would
 ever send. Constraining it to literals of at most 32 characters containing no `&`
 or `=` made it realistic, and the measured bypass fell from 28.7% to 6.7%.
 
@@ -154,7 +154,7 @@ seen, so the result measures generalisation rather than memorisation.
 | `hex_literal` | **no** | 0.748 | 0.749 | +0.001 |
 | `concat_quotes` | **no** | 0.803 | 0.803 | +0.000 |
 
-**It barely moves the needle** — between +0.000 and +0.015. That is the honest
+**It barely moves the needle** ,  between +0.000 and +0.015. That is the honest
 result, and it is explainable: normalisation already rewrites these payloads to
 their canonical form before the model ever sees them, so the augmented rows are
 near-duplicates of the originals. Adversarial training is worth having as
@@ -174,14 +174,14 @@ transform set the normaliser is doing essentially all of the work.
 Miss rate by class: sqli 21.5%, xss 17.9%.
 
 Two things stand out. Missed attacks have a median SQL/XSS keyword count of zero
-and a decode depth of zero — they carry no obvious signal at all. And they are
+and a decode depth of zero, they carry no obvious signal at all. And they are
 three times more likely to carry a POST body.
 
 The body finding looked like a modelling problem, so URL and body were given
 separate n-gram spaces on the theory that a long body dilutes a short payload. It
 did not work: the miss rate for requests with a body was unchanged and held-out
 attack recall fell from 0.34 to 0.21, so the change was reverted. The likelier
-explanation is the corpus — ECML's sanitisation buried attack tokens inside random
+explanation is the corpus. ECML's sanitisation buried attack tokens inside random
 strings (`ntcebetween4oaenq`, `ghaving`), leaving little to recover.
 
 
@@ -195,7 +195,7 @@ HTTP request
 normalise      recursive URL-decode → HTML entities → JS escapes →
                data: URI base64 → unicode NFKC → strip SQL comments
    ↓
-features       char n-grams (3–5, TF-IDF)  +  25 numeric features
+features       char n-grams (3-5, TF-IDF)  +  25 numeric features
    ↓
 LightGBM       P(benign), P(sqli), P(xss)
    ↓
@@ -229,8 +229,8 @@ spaces, SQL keywords. Those counts cannot separate a surname from an auth bypass
 | `q=admin' OR 1=1` | 1 | identical |
 
 Character n-grams see `' or` and `nion sel` as features in their own right. The
-counters are kept alongside — they are cheap, and they make the feature
-importance plot readable — but they are no longer the whole model.
+counters are kept alongside, they are cheap, and they make the feature
+importance plot readable, but they are no longer the whole model.
 
 ### Choosing the threshold
 
@@ -251,8 +251,8 @@ type labels.
 | Split | Rows | Purpose |
 |---|---|---|
 | `benign` / `sqli` / `xss` | 14,507 | train / validate / test (60-20-20 stratified) |
-| 5 other attack types | 9,724 | never trained on — generalisation check |
-| CSIC 2010 | 25,060 | independent corpus — second generalisation check |
+| 5 other attack types | 9,724 | never trained on, generalisation check |
+| CSIC 2010 | 25,060 | independent corpus, second generalisation check |
 
 Three deliberate choices:
 
@@ -322,9 +322,9 @@ src/mlwaf/
   plots.py        report figures
   report.py       README tables, generated from the JSON
   cli.py          mlwaf <download|dataset|train|plots|predict>
-notebooks/        exploration only — never runtime
+notebooks/        exploration only, never runtime
 models/           model.joblib + MODEL_CARD.md
-reports/          metrics, tables, figures — all generated
+reports/          metrics, tables, figures, all generated
 ```
 
 Notebooks explore; `src/` runs. In v0 the notebooks *were* the runtime, which is
@@ -345,7 +345,7 @@ why nothing in it could be tested or deployed.
   heavily confounded by domain shift (corpus discrimination accuracy 1.000), but
   the first two are not, and the gap is real.
 - Two attack classes are trained; five more are only measured.
-- Per-request only — no session state, so slow or distributed attacks that look
+- Per-request only, no session state, so slow or distributed attacks that look
   benign one request at a time are invisible.
 
 See [`models/MODEL_CARD.md`](models/MODEL_CARD.md) for the full card.

@@ -35,7 +35,7 @@ def confusion(metrics: dict) -> None:
                 xticklabels=CLASSES, yticklabels=CLASSES, ax=axes[1])
     axes[1].set(xlabel="predicted", ylabel="actual", title="Row-normalised (recall)")
 
-    fig.suptitle("LightGBM — held-out test set", fontweight="bold")
+    fig.suptitle("LightGBM, held-out test set", fontweight="bold")
     fig.tight_layout()
     fig.savefig(REPORTS / "confusion_matrix.png", dpi=140)
     plt.close(fig)
@@ -51,7 +51,7 @@ def pr_curve(bundle: dict) -> None:
     fig, ax = plt.subplots(figsize=(6, 5))
     ax.plot(recall, precision, lw=2)
     ax.axhline(y.mean(), ls="--", c="grey", lw=1, label=f"no-skill ({y.mean():.2f})")
-    ax.set(xlabel="recall", ylabel="precision", title="Attack vs benign — precision/recall",
+    ax.set(xlabel="recall", ylabel="precision", title="Attack vs benign, precision/recall",
            xlim=(0, 1.01), ylim=(0, 1.02))
     ax.legend()
     fig.tight_layout()

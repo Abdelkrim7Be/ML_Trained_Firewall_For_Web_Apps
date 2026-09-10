@@ -1,4 +1,4 @@
-# Model card — mlwaf SQLi/XSS detector
+# Model card, mlwaf SQLi/XSS detector
 
 ## Intended use
 
@@ -24,15 +24,15 @@ request is blocked.
 
 ## Training data
 
-ECML/PKDD 2007 Discovery Challenge, test partition — the only public corpus that
+ECML/PKDD 2007 Discovery Challenge, test partition, the only public corpus that
 carries full HTTP requests *and* a per-request attack type. Requests were recorded
 from real traffic, then sanitised: URLs, parameter names and parameter values were
 replaced with random strings.
 
 Both the benign and the attack rows come from this single corpus. That is
 deliberate: drawing benign traffic from one dataset and attacks from another
-teaches a model to recognise the dataset — host names, header ordering, formatting
-conventions — rather than the attack, and produces near-perfect scores that
+teaches a model to recognise the dataset, host names, header ordering, formatting
+conventions, rather than the attack, and produces near-perfect scores that
 collapse on contact with real traffic.
 
 Exact duplicates of the normalised request text are removed before splitting, so
@@ -47,7 +47,7 @@ decoding rounds required is itself a feature.
 
 Two blocks are fused:
 
-- **Character n-grams (3–5, TF-IDF).** The main signal. Counts of quotes cannot
+- **Character n-grams (3-5, TF-IDF).** The main signal. Counts of quotes cannot
   distinguish `O'Brien` from `admin' OR 1=1`; the n-grams `' or`, `union sel`,
   `<scr`, `onerror=` can.
 - **25 numeric features.** SQL-oriented (quotes, dashes, parens, keywords),
@@ -103,8 +103,8 @@ concatenation).
 Transforms in the encoding family are what the normalisation chain exists to undo,
 so a non-zero bypass rate there is a defect in `decode.py` rather than a property
 of the model. Measuring them is how the chain is verified. Three real bypasses
-found this way — comment stripping that deleted rather than spaced, hex literals
-that were never decoded, and a `CHAR()` pattern that never matched — were fixed in
+found this way, comment stripping that deleted rather than spaced, hex literals
+that were never decoded, and a `CHAR()` pattern that never matched, were fixed in
 the normaliser; `reports/robustness.json` and `reports/robustness_baseline.json`
 hold the before and after.
 
