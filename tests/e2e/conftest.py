@@ -52,9 +52,13 @@ class _Origin(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
-        self.wfile.write(payload)
+        if self.command != "HEAD":
+            self.wfile.write(payload)
 
-    do_GET = do_POST = do_PUT = do_PATCH = do_DELETE = _respond
+    # HEAD and OPTIONS included: without them BaseHTTPRequestHandler answers
+    # 501, and the failure reads as a proxy bug rather than a fixture gap.
+    do_GET = do_POST = do_PUT = do_PATCH = _respond
+    do_DELETE = do_HEAD = do_OPTIONS = _respond
 
     def log_message(self, *_args):
         pass

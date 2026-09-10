@@ -32,7 +32,8 @@ class _Upstream(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
-    do_GET = do_POST = do_PUT = do_DELETE = _handle
+    do_GET = do_POST = do_PUT = _handle
+    do_DELETE = do_HEAD = do_OPTIONS = _handle
 
     def log_message(self, *_args):
         pass
