@@ -23,13 +23,13 @@ SHIP_MODEL = "lightgbm"
 SHIP_FPR_BUDGET = "0.001"
 
 
-def _split(df: pd.DataFrame):
+def _split(df: pd.DataFrame, seed: int = SEED):
     """60/20/20 stratified. The test split is scored once, at the very end."""
     train, rest = train_test_split(
-        df, test_size=0.4, stratify=df["label"], random_state=SEED
+        df, test_size=0.4, stratify=df["label"], random_state=seed
     )
     val, test = train_test_split(
-        rest, test_size=0.5, stratify=rest["label"], random_state=SEED
+        rest, test_size=0.5, stratify=rest["label"], random_state=seed
     )
     return train, val, test
 

@@ -69,29 +69,29 @@ def _char_tfidf(max_features: int) -> TfidfVectorizer:
     )
 
 
-def _vectoriser() -> ColumnTransformer:
-    """One n-gram space over the whole request, plus the numeric block.
+def _vectoriser(split_regions: bool = False) -> ColumnTransformer:
+    """Char n-grams plus the numeric block.
 
-    Giving the URL and the body separate vectorisers was tried, on the theory that
-    a long body dilutes a short payload -- the error analysis shows attacks
-    carrying a body are missed roughly three times as often. It did not work: the
-    miss rate for requests with a body was unchanged, and recall on attack types
-    held out of training fell from 0.34 to 0.21. The split is therefore not used.
-    The body is still described to the model through the `body_length`,
-    `body_ratio` and `has_body` numeric features, which cost nothing.
+    `split_regions` gives the URL and the body their own n-gram space, on the
+    theory that a long body dilutes a short payload -- the error analysis shows
+    attacks carrying a body are missed roughly three times as often. Whether that
+    helps is settled by `mlwaf.stability`, not by argument: see its output before
+    changing the default.
     """
-    return ColumnTransformer(
-        [
-            ("chars", _char_tfidf(50_000), "text"),
-            ("nums", MaxAbsScaler(), NUMERIC_COLS),
+    if split_regions:
+        blocks = [
+            ("url_chars", _char_tfidf(40_000), "text_url"),
+            ("body_chars", _char_tfidf(20_000), "text_body"),
         ]
-    )
+    else:
+        blocks = [("chars", _char_tfidf(50_000), "text")]
+    return ColumnTransformer([*blocks, ("nums", MaxAbsScaler(), NUMERIC_COLS)])
 
 
-def logistic_model() -> Pipeline:
+def logistic_model(split_regions: bool = False) -> Pipeline:
     return Pipeline(
         [
-            ("features", _vectoriser()),
+            ("features", _vectoriser(split_regions)),
             (
                 "clf",
                 LogisticRegression(
@@ -112,10 +112,10 @@ def logistic_model() -> Pipeline:
 N_SELECTED_FEATURES = 4000
 
 
-def lightgbm_model() -> Pipeline:
+def lightgbm_model(split_regions: bool = False) -> Pipeline:
     return Pipeline(
         [
-            ("features", _vectoriser()),
+            ("features", _vectoriser(split_regions)),
             ("select", SelectKBest(chi2, k=N_SELECTED_FEATURES)),
             (
                 "clf",
@@ -136,6 +136,11 @@ def lightgbm_model() -> Pipeline:
             ),
         ]
     )
+
+
+def lightgbm_split_model() -> Pipeline:
+    """Variant kept only so `mlwaf.stability` can measure it against the default."""
+    return lightgbm_model(split_regions=True)
 
 
 MODELS = {
