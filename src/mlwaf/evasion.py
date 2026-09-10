@@ -62,15 +62,16 @@ def fullwidth(text: str) -> str:
     return "".join(out)
 
 
-def comment_split(text: str) -> str:
-    """un/**/ion sel/**/ect -- splits keywords without changing meaning to SQL."""
+def mysql_version_comment(text: str) -> str:
+    """UNION -> /*!50000UNION*/.
 
-    def sub(m: re.Match[str]) -> str:
-        w = m.group(0)
-        mid = len(w) // 2
-        return f"{w[:mid]}/**/{w[mid:]}"
-
-    return SQL_KEYWORD_RE.sub(sub, text)
+    MySQL executes the body of a version comment; every other parser, and any
+    filter that merely strips comments, sees nothing. Note that splitting a
+    keyword instead (`un/**/ion`) is *not* a working evasion: MySQL treats an
+    inline comment as whitespace, so that payload is a syntax error and would
+    never reach the database as `union`.
+    """
+    return SQL_KEYWORD_RE.sub(lambda m: f"/*!50000{m.group(0)}*/", text)
 
 
 def space_to_comment(text: str) -> str:
@@ -124,7 +125,7 @@ TRANSFORMS: dict[str, Transform] = {
     "html_entity_encode": html_entity_encode,
     "js_unicode_escape": js_unicode_escape,
     "fullwidth": fullwidth,
-    "comment_split": comment_split,
+    "mysql_version_comment": mysql_version_comment,
     "space_to_comment": space_to_comment,
     "space_to_tab": space_to_tab,
     "space_to_newline": space_to_newline,

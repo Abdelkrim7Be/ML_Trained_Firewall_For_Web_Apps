@@ -29,8 +29,11 @@ def test_clean_text_needs_no_rounds():
     assert decode("/products/search")[1] == 0
 
 
-def test_sql_comment_stripping():
-    assert strip_sql_comments("un/**/ion sel/**/ect") == "union select"
+def test_sql_comments_become_whitespace():
+    # A comment is whitespace to a SQL parser, so `union/**/select` must stay two
+    # tokens. Deleting the comment instead would yield `unionselect` and destroy
+    # the n-gram the model matches on.
+    assert strip_sql_comments("union/**/select") == "union select"
 
 
 def test_request_text_is_lowercased_and_joined():

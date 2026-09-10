@@ -32,15 +32,17 @@ def test_normaliser_undoes_what_it_claims():
 
 
 def test_unhandled_transforms_survive_normalisation():
-    """These are genuine gaps, and the suite exists to measure them."""
-    for name in ["char_function", "hex_literal", "concat_quotes"]:
+    """Transforms the normaliser makes no claim about. The suite measures the cost."""
+    for name in ["concat_quotes"]:
         obfuscated = TRANSFORMS[name](QUOTED_PAYLOAD)
         recovered, _ = decode(obfuscated)
         assert recovered.lower() != QUOTED_PAYLOAD.lower(), name
 
 
-def test_comment_split_is_semantically_equivalent():
-    assert TRANSFORMS["comment_split"]("UNION SELECT") == "UN/**/ION SEL/**/ECT"
+def test_mysql_version_comment_wraps_keywords():
+    assert TRANSFORMS["mysql_version_comment"]("UNION SELECT") == (
+        "/*!50000UNION*/ /*!50000SELECT*/"
+    )
 
 
 def test_mutate_keeps_row_count_and_columns():
@@ -58,3 +60,24 @@ def test_request_text_recovers_double_encoded_attack():
     text, depth = request_text("GET", "/item", raw, "")
     assert "union select" in text
     assert depth >= 2
+
+
+def test_normaliser_resolves_sql_obfuscation():
+    """These were measured bypasses before decode.py learned to undo them."""
+    cases = {
+        "space_to_comment": ("union/**/select", "union select"),
+        "mysql_version_comment": ("/*!50000UNION*/ /*!50000SELECT*/", "union select"),
+        "hex_literal": ("id=0x61646d696e", "id=admin"),
+        "char_function": ("id=CHAR(39)admin", "id='admin"),
+        "space_to_tab": ("union\tselect", "union select"),
+        "space_to_newline": ("union\nselect", "union select"),
+    }
+    for name, (payload, expected) in cases.items():
+        text, _ = request_text("GET", "/x", payload, "")
+        assert text == f"get\n/x\n{expected}", f"{name}: {text!r}"
+
+
+def test_hex_literal_leaves_numeric_constants_alone():
+    """0xdeadbeef is not printable text and must not be rewritten."""
+    text, _ = request_text("GET", "/x", "id=0xdeadbeef", "")
+    assert "0xdeadbeef" in text
