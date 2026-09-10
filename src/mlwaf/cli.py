@@ -10,7 +10,7 @@ def _predict(args: argparse.Namespace) -> None:
     import joblib
     import pandas as pd
 
-    from mlwaf.decode import request_text
+    from mlwaf.decode import request_parts
     from mlwaf.features import build_matrix
     from mlwaf.model import CLASSES, attack_score
 
@@ -18,8 +18,15 @@ def _predict(args: argparse.Namespace) -> None:
     pipeline, threshold = bundle["pipeline"], bundle["threshold"]
 
     path, _, query = args.url.partition("?")
-    text, depth = request_text(args.method, path, query, args.body)
-    frame = pd.DataFrame([{"text": text, "query": query, "path": path, "decode_depth": depth}])
+    url_text, body_text, depth = request_parts(args.method, path, query, args.body)
+    frame = pd.DataFrame([{
+        "text": "\n".join(t for t in (url_text, body_text) if t),
+        "text_url": url_text,
+        "text_body": body_text,
+        "query": query,
+        "path": path,
+        "decode_depth": depth,
+    }])
 
     proba = pipeline.predict_proba(build_matrix(frame))[0]
     score = float(attack_score(proba.reshape(1, -1))[0])

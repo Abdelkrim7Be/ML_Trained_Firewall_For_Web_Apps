@@ -149,6 +149,39 @@ def collapse_whitespace(text: str) -> str:
     return WHITESPACE_RE.sub(" ", text).strip()
 
 
+def _canonicalise(part: str) -> str:
+    """Resolve obfuscation, then flatten whitespace.
+
+    Order matters: comments and encoded literals are resolved first, so that
+    comment- and tab-separated keywords end up looking identical to the
+    space-separated form the model was trained on.
+    """
+    part = unwrap_mysql_comments(part)
+    part = strip_sql_comments(part)
+    part = decode_char_calls(part)
+    part = decode_hex_literals(part)
+    return collapse_whitespace(part)
+
+
+def request_parts(method: str, path: str, query: str, body: str) -> tuple[str, str, int]:
+    """Normalised (url_text, body_text, decode_depth).
+
+    URL and body are kept apart because they behave differently: bodies are longer
+    and, measured on the held-out set, attacks carrying one were missed three times
+    as often. A single bag of n-grams over the whole request lets a long body
+    dilute a short payload, so each gets its own vectoriser.
+    """
+    decoded_path, d1 = decode(path)
+    decoded_query, d2 = decode(query)
+    decoded_body, d3 = decode(body)
+
+    url_parts = [_canonicalise(p) for p in (method, decoded_path, decoded_query) if p]
+    url_text = "\n".join(p for p in url_parts if p)
+    body_text = _canonicalise(decoded_body) if decoded_body else ""
+
+    return url_text.lower(), body_text.lower(), max(d1, d2, d3)
+
+
 def request_text(method: str, path: str, query: str, body: str) -> tuple[str, int]:
     """Build the single normalised string the model sees, plus max decode depth.
 
@@ -157,26 +190,10 @@ def request_text(method: str, path: str, query: str, body: str) -> tuple[str, in
     them teaches the model which dataset a row came from rather than whether it is
     an attack.
     """
-    decoded_path, d1 = decode(path)
-    decoded_query, d2 = decode(query)
-    decoded_body, d3 = decode(body)
-
     # Joined on newlines rather than spaces: a space separator would inject a
     # space into every single request, which silently breaks any space-counting
     # feature -- and the v0 rule baseline, which flags a request the moment it
     # sees one space, would then flag 100% of traffic.
-    parts = []
-    for part in (method, decoded_path, decoded_query, decoded_body):
-        if not part:
-            continue
-        # Order matters: resolve comments and encoded literals first, then flatten
-        # whitespace, so that tab- and comment-separated keywords end up looking
-        # identical to the space-separated form the model was trained on.
-        part = unwrap_mysql_comments(part)
-        part = strip_sql_comments(part)
-        part = decode_char_calls(part)
-        part = decode_hex_literals(part)
-        parts.append(collapse_whitespace(part))
-
-    joined = "\n".join(p for p in parts if p)
-    return joined.lower(), max(d1, d2, d3)
+    url_text, body_text, depth = request_parts(method, path, query, body)
+    joined = "\n".join(p for p in (url_text, body_text) if p)
+    return joined, depth

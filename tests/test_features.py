@@ -4,7 +4,10 @@ from mlwaf.features import NUMERIC_COLS, build_matrix, numeric_features
 
 
 def _frame(text, query="", path="/"):
-    return pd.DataFrame([{"text": text, "query": query, "path": path, "decode_depth": 0}])
+    return pd.DataFrame([{
+        "text": text, "text_url": text, "text_body": "",
+        "query": query, "path": path, "decode_depth": 0,
+    }])
 
 
 def test_all_columns_present_and_finite():
@@ -50,4 +53,4 @@ def test_empty_text_does_not_crash():
 def test_build_matrix_keeps_text_first():
     m = build_matrix(_frame("get /x"))
     assert m.columns[0] == "text"
-    assert len(m.columns) == len(NUMERIC_COLS) + 1
+    assert len(m.columns) == len(NUMERIC_COLS) + 3  # text, text_url, text_body

@@ -42,6 +42,9 @@ NUMERIC_COLS = [
     # generic
     "length", "entropy", "decode_depth", "spaces", "non_ascii_ratio",
     "digit_ratio", "punct_ratio", "param_count", "path_depth", "max_token_len",
+    # Where the payload sits matters: attacks carrying a body were missed three
+    # times as often as those that did not, so the split is given to the model.
+    "body_length", "body_ratio", "has_body",
 ]
 
 
@@ -54,7 +57,9 @@ def _entropy(text: str) -> float:
     return -sum((c / n) * math.log2(c / n) for c in counts.values())
 
 
-def _row_features(text: str, query: str, path: str, decode_depth: int) -> dict[str, float]:
+def _row_features(
+    text: str, query: str, path: str, decode_depth: int, body: str = ""
+) -> dict[str, float]:
     n = max(len(text), 1)
     non_ascii = sum(1 for ch in text if ord(ch) > 127)
     digits = sum(1 for ch in text if ch.isdigit())
@@ -87,19 +92,24 @@ def _row_features(text: str, query: str, path: str, decode_depth: int) -> dict[s
         "param_count": query.count("&") + 1 if query else 0,
         "path_depth": path.count("/"),
         "max_token_len": max((len(t) for t in tokens), default=0),
+        "body_length": len(body),
+        "body_ratio": len(body) / n,
+        "has_body": float(bool(body)),
     }
 
 
 def numeric_features(df: pd.DataFrame) -> pd.DataFrame:
     rows = [
-        _row_features(r.text, r.query, r.path, r.decode_depth)
+        _row_features(r.text, r.query, r.path, r.decode_depth, getattr(r, "text_body", ""))
         for r in df.itertuples(index=False)
     ]
     return pd.DataFrame(rows, columns=NUMERIC_COLS, index=df.index).astype(np.float32)
 
 
 def build_matrix(df: pd.DataFrame) -> pd.DataFrame:
-    """Frame with the text column plus every numeric column, ready for the pipeline."""
+    """Frame with both text columns plus every numeric column, ready for the pipeline."""
     out = numeric_features(df)
     out.insert(0, "text", df["text"].values)
+    out.insert(1, "text_url", df["text_url"].values)
+    out.insert(2, "text_body", df["text_body"].values)
     return out

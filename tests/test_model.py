@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from mlwaf.decode import request_text
+from mlwaf.decode import request_parts
 from mlwaf.features import build_matrix
 from mlwaf.model import CLASSES, RuleBaseline, attack_score
 
@@ -9,8 +9,12 @@ from mlwaf.model import CLASSES, RuleBaseline, attack_score
 def _frame(rows):
     out = []
     for method, path, query, body in rows:
-        text, depth = request_text(method, path, query, body)
-        out.append({"text": text, "query": query, "path": path, "decode_depth": depth})
+        url_text, body_text, depth = request_parts(method, path, query, body)
+        out.append({
+            "text": "\n".join(t for t in (url_text, body_text) if t),
+            "text_url": url_text, "text_body": body_text,
+            "query": query, "path": path, "decode_depth": depth,
+        })
     return build_matrix(pd.DataFrame(out))
 
 

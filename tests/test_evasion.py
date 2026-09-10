@@ -52,7 +52,9 @@ def test_mutate_keeps_row_count_and_columns():
     }])
     out = mutate(df, TRANSFORMS["case_flip"])
     assert len(out) == 1
-    assert set(out.columns) == {"text", "query", "path", "decode_depth"}
+    assert set(out.columns) == {
+        "text", "text_url", "text_body", "query", "path", "decode_depth"
+    }
 
 
 def test_request_text_recovers_double_encoded_attack():

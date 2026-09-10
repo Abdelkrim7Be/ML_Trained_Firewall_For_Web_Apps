@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from mlwaf.decode import request_text
+from mlwaf.decode import request_parts
 from mlwaf.parse import parse_file
 
 RAW_DIR = Path("data/raw")
@@ -38,7 +38,9 @@ UNSEEN_ATTACKS = {"LdapInjection", "XPathInjection", "PathTransversal", "OsComma
 def _records(path: Path, source: str) -> list[dict]:
     rows = []
     for req in parse_file(path):
-        text, depth = request_text(req.method, req.path, req.query, req.body)
+        url_text, body_text, depth = request_parts(
+            req.method, req.path, req.query, req.body
+        )
         rows.append(
             {
                 "source": source,
@@ -48,7 +50,9 @@ def _records(path: Path, source: str) -> list[dict]:
                 "path": req.path,
                 "query": req.query,
                 "body": req.body,
-                "text": text,
+                "text_url": url_text,
+                "text_body": body_text,
+                "text": "\n".join(t for t in (url_text, body_text) if t),
                 "decode_depth": depth,
             }
         )

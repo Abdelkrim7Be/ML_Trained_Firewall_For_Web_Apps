@@ -59,20 +59,27 @@ class RuleBaseline(BaseEstimator, ClassifierMixin):
         return proba
 
 
+def _char_tfidf(max_features: int) -> TfidfVectorizer:
+    return TfidfVectorizer(
+        analyzer="char_wb",
+        ngram_range=(3, 5),
+        min_df=3,
+        sublinear_tf=True,
+        max_features=max_features,
+    )
+
+
 def _vectoriser() -> ColumnTransformer:
+    """URL and body get their own n-gram space.
+
+    Sharing one bag of n-grams across the whole request lets a long POST body
+    dilute a short payload, and the error analysis showed the cost: attacks
+    carrying a body were missed three times as often as those without one.
+    """
     return ColumnTransformer(
         [
-            (
-                "chars",
-                TfidfVectorizer(
-                    analyzer="char_wb",
-                    ngram_range=(3, 5),
-                    min_df=3,
-                    sublinear_tf=True,
-                    max_features=50_000,
-                ),
-                "text",
-            ),
+            ("url_chars", _char_tfidf(40_000), "text_url"),
+            ("body_chars", _char_tfidf(20_000), "text_body"),
             ("nums", MaxAbsScaler(), NUMERIC_COLS),
         ]
     )

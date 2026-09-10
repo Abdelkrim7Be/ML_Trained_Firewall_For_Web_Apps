@@ -14,7 +14,7 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
-from mlwaf.decode import decode, request_text
+from mlwaf.decode import decode, request_parts
 from mlwaf.evasion import HANDLED_BY_NORMALISER, TRANSFORMS, Transform
 from mlwaf.features import build_matrix
 from mlwaf.model import attack_score
@@ -36,8 +36,15 @@ def mutate(df: pd.DataFrame, transform: Transform) -> pd.DataFrame:
         decoded_body, _ = decode(r.body)
         query = transform(decoded_query) if decoded_query else ""
         body = transform(decoded_body) if decoded_body else ""
-        text, depth = request_text(r.method, r.path, query, body)
-        rows.append({"text": text, "query": query, "path": r.path, "decode_depth": depth})
+        url_text, body_text, depth = request_parts(r.method, r.path, query, body)
+        rows.append({
+            "text": "\n".join(t for t in (url_text, body_text) if t),
+            "text_url": url_text,
+            "text_body": body_text,
+            "query": query,
+            "path": r.path,
+            "decode_depth": depth,
+        })
     return pd.DataFrame(rows)
 
 
