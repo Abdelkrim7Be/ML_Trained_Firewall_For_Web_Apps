@@ -60,20 +60,22 @@ class RuleBaseline(BaseEstimator, ClassifierMixin):
 
 
 def _char_tfidf(max_features: int) -> TfidfVectorizer:
-    """Character n-grams, deliberately not the `char_wb` variant.
+    """Character n-grams, word boundary aware.
 
-    `char_wb` only builds n-grams inside word boundaries and pads each word with
-    a space, which throws away the punctuation that separates an attack from a
-    word. SQL's `LIKE`, HTML's `<link>` and the surname `libel` all reduce to the
-    same n-gram " li", and the model duly scored `nombre=libel` as an injection
-    with the feature " li" contributing +7.1 on its own.
+    Plain `char` n-grams were tried, on the theory that `char_wb` discards the
+    punctuation separating an attack from a word: SQL's `LIKE`, HTML's `<link>`
+    and the surname `libel` all reduce to the n-gram " li", which the model was
+    observed contributing +7.1 toward "attack" on a person's name.
 
-    Plain `char` keeps the punctuation, so `'li`, `<li` and `lib` stay distinct.
-    For this task punctuation is most of the signal: it is what makes `1' OR 1=1--`
-    an attack and `1 or 2` a search query.
+    The theory was right about the mechanism and wrong about the remedy. Plain
+    `char` made things worse across the board: false positives on an unseen
+    corpus went from 1.07% to 6.23% and SQL injection precision fell from 0.86 to
+    0.61. Word boundaries carry real information, and losing them costs more than
+    the collisions they cause. The " li" problem is better addressed with benign
+    examples containing those fragments than by changing the analyser.
     """
     return TfidfVectorizer(
-        analyzer="char",
+        analyzer="char_wb",
         ngram_range=(3, 5),
         min_df=3,
         sublinear_tf=True,
