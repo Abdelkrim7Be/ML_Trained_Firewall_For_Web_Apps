@@ -89,6 +89,47 @@ ORDINARY = [
 ]
 
 
+# Structured identifiers. These were the largest remaining source of false
+# positives on a real e-commerce corpus: sixteen digit card numbers scored as
+# attacks because every benign value in the training traces came from 1990s
+# static file serving, where a long digit string simply never appears.
+def _identifiers(rng: random.Random, count: int) -> list[str]:
+    out: list[str] = []
+    for _ in range(count):
+        kind = rng.randint(0, 9)
+        if kind < 3:
+            out.append("".join(str(rng.randint(0, 9)) for _ in range(16)))   # card
+        elif kind < 4:
+            out.append("".join(str(rng.randint(0, 9)) for _ in range(rng.randint(9, 13))))
+        elif kind < 5:
+            out.append(f"{rng.randint(1, 99)}{rng.choice('ABCDEFGH')}{rng.randint(1000, 9999)}")
+        elif kind < 6:
+            out.append(f"GB{rng.randint(10, 99)} ABCD {rng.randint(10, 99)} "
+                       f"{rng.randint(100000, 999999)}")                      # iban-ish
+        elif kind < 7:
+            out.append(f"{rng.randint(1, 12):02d}/{rng.randint(2020, 2030)}")  # expiry
+        elif kind < 8:
+            out.append("".join(rng.choice("0123456789abcdef") for _ in range(rng.randint(32, 64))))
+        elif kind < 9:
+            out.append(str(rng.randint(10**6, 10**12)))
+        else:
+            out.append(f"{rng.randint(1, 999)}.{rng.randint(0, 999)}.{rng.randint(0, 999)}")
+    return out
+
+
+# Names and free text a form actually receives, in several languages, including
+# the ones that carry apostrophes and accents.
+PERSON_TEXT = [
+    "Bartolomea", "Masdevall Villazán", "Jean-Luc", "Ana María", "José Ángel",
+    "Søren Kierkegaard", "Þórunn", "Zoë", "Renée", "François", "Ítalo",
+    "Nguyễn Văn An", "Łukasz", "Beyoncé", "Chloé", "Mónica Ruíz",
+    "calle de Alcalá 42", "Rua das Flores, 15", "12 Rue de l'Église",
+    "Flat 3, 221B Baker Street", "Postfach 1234", "Apartado de correos 99",
+    "contraseña", "usuario", "iniciar sesión", "cerrar sesión", "carrito",
+    "Añadir al carrito", "Pasar por caja", "Confirmar pedido", "Mi cuenta",
+]
+
+
 def generate(count: int, seed: int = 7) -> list[str]:
     """A pool of harmless values chosen to be easy to mistake for attacks."""
     rng = random.Random(seed)
@@ -100,6 +141,8 @@ def generate(count: int, seed: int = 7) -> list[str]:
     pool += TECHNICAL
     pool += MULTILINGUAL
     pool += ORDINARY
+    pool += PERSON_TEXT
+    pool += _identifiers(rng, max(count // 3, 800))
 
     # Boolean search queries, the hardest legitimate case.
     for _ in range(max(count // 4, 200)):

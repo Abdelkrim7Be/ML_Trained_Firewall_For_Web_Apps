@@ -1,0 +1,609 @@
+{
+  "rule_baseline": {
+    "model": "rule_baseline",
+    "macro_f1": 0.3876,
+    "per_class": {
+      "benign": {
+        "precision": 0.9995,
+        "recall": 0.9377,
+        "f1": 0.9676,
+        "support": 15403
+      },
+      "sqli": {
+        "precision": 0.1083,
+        "recall": 0.9801,
+        "f1": 0.1951,
+        "support": 151
+      },
+      "xss": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 262
+      }
+    },
+    "confusion_matrix": [
+      [
+        14443,
+        960,
+        0
+      ],
+      [
+        3,
+        148,
+        0
+      ],
+      [
+        4,
+        258,
+        0
+      ]
+    ],
+    "binary_pr_auc": 0.2926,
+    "binary_roc_auc": 0.9604,
+    "at_fpr": {
+      "0.001": {
+        "threshold": 1.0,
+        "recall": 0.9831,
+        "precision": 0.2972,
+        "fpr": 0.06233,
+        "tp": 406,
+        "fp": 960,
+        "fn": 7,
+        "tn": 14443
+      },
+      "0.005": {
+        "threshold": 1.0,
+        "recall": 0.9831,
+        "precision": 0.2972,
+        "fpr": 0.06233,
+        "tp": 406,
+        "fp": 960,
+        "fn": 7,
+        "tn": 14443
+      },
+      "0.010": {
+        "threshold": 1.0,
+        "recall": 0.9831,
+        "precision": 0.2972,
+        "fpr": 0.06233,
+        "tp": 406,
+        "fp": 960,
+        "fn": 7,
+        "tn": 14443
+      }
+    },
+    "calibration": {
+      "brier_score": 0.0611,
+      "expected_calibration_error": 0.0611,
+      "buckets": [
+        {
+          "range": [
+            0.0,
+            0.1
+          ],
+          "n": 14450,
+          "mean_score": 0.0,
+          "observed_attack_rate": 0.0005
+        },
+        {
+          "range": [
+            0.9,
+            1.0
+          ],
+          "n": 1366,
+          "mean_score": 1.0,
+          "observed_attack_rate": 0.2972
+        }
+      ]
+    },
+    "fit_seconds": 0.0,
+    "predict_ms_per_request": 0.003
+  },
+  "logreg": {
+    "model": "logreg",
+    "macro_f1": 0.9814,
+    "per_class": {
+      "benign": {
+        "precision": 0.9995,
+        "recall": 0.9995,
+        "f1": 0.9995,
+        "support": 15403
+      },
+      "sqli": {
+        "precision": 0.9664,
+        "recall": 0.9536,
+        "f1": 0.96,
+        "support": 151
+      },
+      "xss": {
+        "precision": 0.9811,
+        "recall": 0.9885,
+        "f1": 0.9848,
+        "support": 262
+      }
+    },
+    "confusion_matrix": [
+      [
+        15395,
+        5,
+        3
+      ],
+      [
+        5,
+        144,
+        2
+      ],
+      [
+        3,
+        0,
+        259
+      ]
+    ],
+    "binary_pr_auc": 0.996,
+    "binary_roc_auc": 0.9997,
+    "at_fpr": {
+      "0.001": {
+        "threshold": 0.324721,
+        "recall": 0.9831,
+        "precision": 0.9644,
+        "fpr": 0.00097,
+        "tp": 406,
+        "fp": 15,
+        "fn": 7,
+        "tn": 15388
+      },
+      "0.005": {
+        "threshold": 0.067461,
+        "recall": 0.9952,
+        "precision": 0.8422,
+        "fpr": 0.005,
+        "tp": 411,
+        "fp": 77,
+        "fn": 2,
+        "tn": 15326
+      },
+      "0.010": {
+        "threshold": 0.041641,
+        "recall": 0.9952,
+        "precision": 0.7274,
+        "fpr": 0.01,
+        "tp": 411,
+        "fp": 154,
+        "fn": 2,
+        "tn": 15249
+      }
+    },
+    "calibration": {
+      "brier_score": 0.0009,
+      "expected_calibration_error": 0.0035,
+      "buckets": [
+        {
+          "range": [
+            0.0,
+            0.1
+          ],
+          "n": 15361,
+          "mean_score": 0.0033,
+          "observed_attack_rate": 0.0003
+        },
+        {
+          "range": [
+            0.1,
+            0.2
+          ],
+          "n": 26,
+          "mean_score": 0.1436,
+          "observed_attack_rate": 0.1154
+        },
+        {
+          "range": [
+            0.2,
+            0.3
+          ],
+          "n": 7,
+          "mean_score": 0.2275,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.3,
+            0.4
+          ],
+          "n": 7,
+          "mean_score": 0.3564,
+          "observed_attack_rate": 0.1429
+        },
+        {
+          "range": [
+            0.4,
+            0.5
+          ],
+          "n": 2,
+          "mean_score": 0.442,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.6,
+            0.7
+          ],
+          "n": 3,
+          "mean_score": 0.642,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.7,
+            0.8
+          ],
+          "n": 2,
+          "mean_score": 0.771,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.8,
+            0.9
+          ],
+          "n": 2,
+          "mean_score": 0.8503,
+          "observed_attack_rate": 0.5
+        },
+        {
+          "range": [
+            0.9,
+            1.0
+          ],
+          "n": 406,
+          "mean_score": 0.998,
+          "observed_attack_rate": 0.9951
+        }
+      ]
+    },
+    "fit_seconds": 6.23,
+    "predict_ms_per_request": 0.0367
+  },
+  "lightgbm": {
+    "model": "lightgbm",
+    "macro_f1": 0.9624,
+    "per_class": {
+      "benign": {
+        "precision": 0.9994,
+        "recall": 0.9983,
+        "f1": 0.9988,
+        "support": 15403
+      },
+      "sqli": {
+        "precision": 0.8659,
+        "recall": 0.9404,
+        "f1": 0.9016,
+        "support": 151
+      },
+      "xss": {
+        "precision": 0.9811,
+        "recall": 0.9924,
+        "f1": 0.9867,
+        "support": 262
+      }
+    },
+    "confusion_matrix": [
+      [
+        15377,
+        22,
+        4
+      ],
+      [
+        8,
+        142,
+        1
+      ],
+      [
+        2,
+        0,
+        260
+      ]
+    ],
+    "binary_pr_auc": 0.9949,
+    "binary_roc_auc": 0.9992,
+    "at_fpr": {
+      "0.001": {
+        "threshold": 0.780391,
+        "recall": 0.9685,
+        "precision": 0.9877,
+        "fpr": 0.00032,
+        "tp": 400,
+        "fp": 5,
+        "fn": 13,
+        "tn": 15398
+      },
+      "0.005": {
+        "threshold": 5.5e-05,
+        "recall": 0.9927,
+        "precision": 0.8419,
+        "fpr": 0.005,
+        "tp": 410,
+        "fp": 77,
+        "fn": 3,
+        "tn": 15326
+      },
+      "0.010": {
+        "threshold": 1.4e-05,
+        "recall": 0.9976,
+        "precision": 0.7518,
+        "fpr": 0.00883,
+        "tp": 412,
+        "fp": 136,
+        "fn": 1,
+        "tn": 15267
+      }
+    },
+    "calibration": {
+      "brier_score": 0.0016,
+      "expected_calibration_error": 0.0017,
+      "buckets": [
+        {
+          "range": [
+            0.0,
+            0.1
+          ],
+          "n": 15375,
+          "mean_score": 0.0,
+          "observed_attack_rate": 0.0003
+        },
+        {
+          "range": [
+            0.1,
+            0.2
+          ],
+          "n": 4,
+          "mean_score": 0.1606,
+          "observed_attack_rate": 0.25
+        },
+        {
+          "range": [
+            0.2,
+            0.3
+          ],
+          "n": 3,
+          "mean_score": 0.2328,
+          "observed_attack_rate": 1.0
+        },
+        {
+          "range": [
+            0.3,
+            0.4
+          ],
+          "n": 3,
+          "mean_score": 0.3591,
+          "observed_attack_rate": 0.3333
+        },
+        {
+          "range": [
+            0.4,
+            0.5
+          ],
+          "n": 2,
+          "mean_score": 0.4128,
+          "observed_attack_rate": 0.5
+        },
+        {
+          "range": [
+            0.6,
+            0.7
+          ],
+          "n": 3,
+          "mean_score": 0.6665,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.7,
+            0.8
+          ],
+          "n": 21,
+          "mean_score": 0.7709,
+          "observed_attack_rate": 0.1429
+        },
+        {
+          "range": [
+            0.8,
+            0.9
+          ],
+          "n": 3,
+          "mean_score": 0.8726,
+          "observed_attack_rate": 0.6667
+        },
+        {
+          "range": [
+            0.9,
+            1.0
+          ],
+          "n": 402,
+          "mean_score": 0.9995,
+          "observed_attack_rate": 0.99
+        }
+      ]
+    },
+    "fit_seconds": 53.56,
+    "predict_ms_per_request": 0.0483
+  },
+  "FINAL_TEST": {
+    "model": "lightgbm",
+    "macro_f1": 0.9631,
+    "per_class": {
+      "benign": {
+        "precision": 0.9992,
+        "recall": 0.9982,
+        "f1": 0.9987,
+        "support": 15445
+      },
+      "sqli": {
+        "precision": 0.8619,
+        "recall": 0.9455,
+        "f1": 0.9017,
+        "support": 165
+      },
+      "xss": {
+        "precision": 0.9904,
+        "recall": 0.9873,
+        "f1": 0.9888,
+        "support": 314
+      }
+    },
+    "confusion_matrix": [
+      [
+        15417,
+        25,
+        3
+      ],
+      [
+        9,
+        156,
+        0
+      ],
+      [
+        4,
+        0,
+        310
+      ]
+    ],
+    "binary_pr_auc": 0.9932,
+    "binary_roc_auc": 0.9997,
+    "at_fpr": {
+      "0.001": {
+        "threshold": 0.780391,
+        "recall": 0.9666,
+        "precision": 0.9851,
+        "fpr": 0.00045,
+        "tp": 463,
+        "fp": 7,
+        "fn": 16,
+        "tn": 15438
+      },
+      "0.005": {
+        "threshold": 5.5e-05,
+        "recall": 0.9896,
+        "precision": 0.865,
+        "fpr": 0.00479,
+        "tp": 474,
+        "fp": 74,
+        "fn": 5,
+        "tn": 15371
+      },
+      "0.010": {
+        "threshold": 1.4e-05,
+        "recall": 0.9896,
+        "precision": 0.7887,
+        "fpr": 0.00822,
+        "tp": 474,
+        "fp": 127,
+        "fn": 5,
+        "tn": 15318
+      }
+    },
+    "calibration": {
+      "brier_score": 0.002,
+      "expected_calibration_error": 0.0024,
+      "buckets": [
+        {
+          "range": [
+            0.0,
+            0.1
+          ],
+          "n": 15424,
+          "mean_score": 0.0,
+          "observed_attack_rate": 0.0007
+        },
+        {
+          "range": [
+            0.1,
+            0.2
+          ],
+          "n": 2,
+          "mean_score": 0.1287,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.2,
+            0.3
+          ],
+          "n": 1,
+          "mean_score": 0.2219,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.3,
+            0.4
+          ],
+          "n": 1,
+          "mean_score": 0.3676,
+          "observed_attack_rate": 1.0
+        },
+        {
+          "range": [
+            0.4,
+            0.5
+          ],
+          "n": 1,
+          "mean_score": 0.4564,
+          "observed_attack_rate": 1.0
+        },
+        {
+          "range": [
+            0.5,
+            0.6
+          ],
+          "n": 1,
+          "mean_score": 0.5051,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.6,
+            0.7
+          ],
+          "n": 3,
+          "mean_score": 0.631,
+          "observed_attack_rate": 1.0
+        },
+        {
+          "range": [
+            0.7,
+            0.8
+          ],
+          "n": 23,
+          "mean_score": 0.7746,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.8,
+            0.9
+          ],
+          "n": 5,
+          "mean_score": 0.847,
+          "observed_attack_rate": 1.0
+        },
+        {
+          "range": [
+            0.9,
+            1.0
+          ],
+          "n": 463,
+          "mean_score": 0.9998,
+          "observed_attack_rate": 0.9892
+        }
+      ]
+    },
+    "generalisation": {
+      "note": "see reports/benchmark_model_units.json"
+    },
+    "leakage_check": {
+      "source_discrimination_accuracy": 0.9999
+    },
+    "operating_threshold": 0.780391
+  }
+}

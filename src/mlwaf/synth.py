@@ -357,7 +357,7 @@ def build_units(seed: int = 42) -> pd.DataFrame:
     print(f"  real paths            {len(paths):,}")
 
     payloads = load_payloads()
-    hard = hard_negatives(6000)
+    hard = hard_negatives(20_000)
     print(f"  hard negatives        {len(hard):,}")
 
     rows: list[dict] = []
