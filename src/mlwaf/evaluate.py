@@ -8,6 +8,8 @@ collateral damage to real users.
 
 from __future__ import annotations
 
+from itertools import pairwise
+
 import numpy as np
 from sklearn.metrics import (
     average_precision_score,
@@ -21,6 +23,44 @@ from mlwaf.model import CLASSES, attack_score
 # A WAF that blocks 1% of real traffic is unusable, so the operating point is
 # chosen by how much false blocking we can tolerate, not by argmax.
 FPR_BUDGETS = (0.001, 0.005, 0.01)
+
+
+def calibration(y_true: np.ndarray, scores: np.ndarray, bins: int = 10) -> dict:
+    """Do the probabilities mean what they say?
+
+    The whole threshold argument -- "block above 0.96, and 0.1% of real users pay
+    for it" -- assumes a score of 0.9 corresponds to roughly a 90% chance of being
+    an attack. Expected calibration error is the average gap between predicted
+    confidence and observed frequency; Brier score is the mean squared error of the
+    probability itself. Both are reported because a model can rank well (good
+    PR-AUC) while being badly calibrated, and a badly calibrated model makes the
+    chosen operating point mean something other than what it claims.
+    """
+    is_attack = (y_true != "benign").astype(float)
+    brier = float(np.mean((scores - is_attack) ** 2))
+
+    edges = np.linspace(0.0, 1.0, bins + 1)
+    ece, buckets = 0.0, []
+    for lo, hi in pairwise(edges):
+        mask = (scores >= lo) & (scores < hi if hi < 1.0 else scores <= hi)
+        if not mask.any():
+            continue
+        confidence = float(scores[mask].mean())
+        observed = float(is_attack[mask].mean())
+        weight = float(mask.mean())
+        ece += weight * abs(confidence - observed)
+        buckets.append({
+            "range": [round(float(lo), 2), round(float(hi), 2)],
+            "n": int(mask.sum()),
+            "mean_score": round(confidence, 4),
+            "observed_attack_rate": round(observed, 4),
+        })
+
+    return {
+        "brier_score": round(brier, 4),
+        "expected_calibration_error": round(ece, 4),
+        "buckets": buckets,
+    }
 
 
 def threshold_at_fpr(y_true: np.ndarray, scores: np.ndarray, budget: float) -> float:
@@ -89,6 +129,7 @@ def evaluate(
         "binary_pr_auc": round(float(average_precision_score(is_attack, scores)), 4),
         "binary_roc_auc": round(float(roc_auc_score(is_attack, scores)), 4),
         "at_fpr": {},
+        "calibration": calibration(y_true, scores),
     }
 
     for budget in FPR_BUDGETS:
