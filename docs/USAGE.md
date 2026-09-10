@@ -107,6 +107,35 @@ Every setting is an environment variable prefixed `WAF_`. A `.env` file works to
 | `WAF_DB_PATH` | `data/waf.db` | decision log |
 | `WAF_FEEDBACK_PATH` | `data/feedback.jsonl` | where false positive marks are appended |
 | `WAF_MODEL_PATH` | `models/model.joblib` | the model to serve |
+| `WAF_ADMIN_TOKEN` | generated | token for the console and its API |
+| `WAF_METRICS_PUBLIC` | `false` | serve `/_waf/metrics` without a token |
+
+### The control plane token
+
+The console and the proxy share a port, so anything that can reach your site can
+reach `/_waf`. It therefore requires a token. Set one:
+
+```sh
+WAF_ADMIN_TOKEN=$(openssl rand -base64 32) python -m mlwaf.waf.app
+```
+
+Leave it unset and one is generated at startup and written to the log:
+
+```
+{"level":"warning","message":"no WAF_ADMIN_TOKEN set, generated one for this run",
+ "admin_token":"xQ8f...."}
+```
+
+The console asks for it once and keeps it for the browser session. On the command
+line, send it as a header:
+
+```sh
+curl -H "X-MLWAF-Token: $WAF_ADMIN_TOKEN" localhost:8080/_waf/status
+curl -H "Authorization: Bearer $WAF_ADMIN_TOKEN" localhost:8080/_waf/status
+```
+
+`/_waf/healthz` and `/_waf/readyz` stay open, because orchestrators have to poll
+them and they reveal nothing.
 
 ### Rolling it out properly
 
@@ -171,8 +200,8 @@ unicode and case  id=1' union select password from users--
 ```sh
 curl localhost:8080/_waf/healthz   # liveness
 curl localhost:8080/_waf/readyz    # readiness, 503 until the model is warm
-curl localhost:8080/_waf/metrics   # prometheus
-curl localhost:8080/_waf/status    # mode, threshold, counters, summary
+curl -H "X-MLWAF-Token: $T" localhost:8080/_waf/metrics   # prometheus
+curl -H "X-MLWAF-Token: $T" localhost:8080/_waf/status    # mode, threshold, counters
 ```
 
 Logs are JSON, one object per line, with a request id on anything request scoped:
@@ -194,26 +223,30 @@ Metrics worth alerting on:
 
 Everything the console does is available directly.
 
+All of these need the token. `export T=$WAF_ADMIN_TOKEN` first, then:
+
 ```sh
 # recent decisions, filtered
-curl "localhost:8080/_waf/decisions?only_flagged=true&limit=50"
+curl -H "X-MLWAF-Token: $T" "localhost:8080/_waf/decisions?only_flagged=true&limit=50"
 
 # one decision, with its explanation
-curl localhost:8080/_waf/decisions/42
+curl -H "X-MLWAF-Token: $T" localhost:8080/_waf/decisions/42
 
 # what a different threshold would have done
-curl "localhost:8080/_waf/threshold/impact?value=0.85"
+curl -H "X-MLWAF-Token: $T" "localhost:8080/_waf/threshold/impact?value=0.85"
 
 # change the threshold, and the mode
-curl -X POST localhost:8080/_waf/threshold -H 'content-type: application/json' -d '{"value":0.85}'
-curl -X POST localhost:8080/_waf/mode      -H 'content-type: application/json' -d '{"mode":"block"}'
+curl -X POST localhost:8080/_waf/threshold -H "X-MLWAF-Token: $T" \
+     -H 'content-type: application/json' -d '{"value":0.85}'
+curl -X POST localhost:8080/_waf/mode -H "X-MLWAF-Token: $T" \
+     -H 'content-type: application/json' -d '{"mode":"block"}'
 
 # mark a false positive
-curl -X POST localhost:8080/_waf/decisions/42/feedback \
+curl -X POST localhost:8080/_waf/decisions/42/feedback -H "X-MLWAF-Token: $T" \
      -H 'content-type: application/json' -d '{"label":"false_positive"}'
 
 # live stream
-curl -N localhost:8080/_waf/stream
+curl -N "localhost:8080/_waf/stream?token=$T"
 ```
 
 Interactive docs at `http://localhost:8080/_waf/docs`.
@@ -223,10 +256,19 @@ Interactive docs at `http://localhost:8080/_waf/docs`.
 ## Tests
 
 ```sh
-make test        # 90 unit and integration tests, about 30 seconds
-make e2e         # 57 end to end tests against a real server, about 90 seconds
+make test        # unit and integration, about 30 seconds
+make e2e         # end to end against real server processes, several minutes
 make lint
 ```
+
+## Capacity
+
+One process serves roughly **80 requests per second**, with scoring taking about
+8 ms. Throughput is flat past four concurrent clients because scoring holds the
+GIL. Past that, run several processes behind a load balancer; SQLite in WAL mode
+handles multiple writers. Note that the console's live stream and the decision
+cache are per process, so each console then sees only its own worker's traffic.
+Numbers and method in [`FINDINGS.md`](FINDINGS.md).
 
 The end to end suite starts real server processes and a real origin, then checks
 blocking, origin isolation, obfuscation handling, concurrency, restart
