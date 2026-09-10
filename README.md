@@ -18,6 +18,35 @@ ALLOW  attack_score=0.0056  threshold=0.9626   benign 0.9944
 That last one is the point. It contains an apostrophe, so the previous version of
 this project blocked it, along with **52% of all legitimate traffic**.
 
+## Two corpora, and why it matters
+
+This project trains the same model twice. Once on ECML/PKDD 2007, the published
+academic corpus, and once on a corpus built from four public web server traces.
+The comparison is the point of the repository.
+
+| Measured on real traffic and outside payloads | ECML | Real traces |
+|---|---|---|
+| **False positives**, 21,167 real requests | 339, **1.60%** | 9, **0.0425%** |
+| SQL injection recall, 759 community payloads | 0.784 | **0.953** |
+| XSS recall, 1,936 community payloads | 0.826 | **0.997** |
+| Recall on unseen attack types | 0.209 | **0.760** |
+
+Thirty eight times fewer false positives, and better recall at the same time. Not
+a threshold trade, and not a better algorithm: the same pipeline, trained on data
+where benign traffic actually looks like benign traffic.
+
+```
+                                    ECML model      corpus model
+/users/42/profile                   0.9996 BLOCK    0.0000 allow
+/shuttle/missions/sts-78/news/      0.9995 BLOCK    0.0000 allow
+id=1' OR 1=1--                      0.5122 allow    1.0000 BLOCK
+id=1' AND SLEEP(5)--                0.1819 allow    1.0000 BLOCK
+```
+
+The story of how the first model came to block `/users/42/profile` while allowing
+the most famous SQL injection payload there is, and how it was found, is in
+[`docs/FINDINGS.md`](docs/FINDINGS.md). It is the most useful thing here.
+
 ## Read this before the numbers
 
 This repository reports **0.80 recall** at a 0.1% false-positive rate. Search GitHub
