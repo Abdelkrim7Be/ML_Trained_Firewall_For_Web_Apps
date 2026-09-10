@@ -33,7 +33,7 @@ CHAR_CALL_RE = re.compile(r"\b(?:char|chr)\s*\(\s*([0-9a-fx,\s]+?)\s*\)", re.IGN
 # /*!50000UNION*/ executes on MySQL but reads as a comment to anything else,
 # so the payload inside must be recovered before comments are flattened.
 MYSQL_VERSION_COMMENT_RE = re.compile(r"/\*!(?:\d{5})?(.*?)\*/", re.DOTALL)
-HEX_LITERAL_RE = re.compile(r"\b0x([0-9a-fA-F]{4,})\b")
+HEX_LITERAL_RE = re.compile(r"\b0x([0-9a-fA-F]{2,})\b")
 WHITESPACE_RE = re.compile(r"[ \t\n\r\v\f\u00a0\u2028\u2029]+")
 DATA_URI_B64_RE = re.compile(r"data:[^;,]*;base64,([A-Za-z0-9+/=]{8,})", re.IGNORECASE)
 
@@ -133,9 +133,13 @@ def decode_hex_literals(text: str) -> str:
             raw = bytes.fromhex(digits).decode("ascii")
         except (ValueError, UnicodeDecodeError):
             return m.group(0)
-        # Only unwrap when the result is printable text; a numeric constant that
-        # happens to be even-length hex should be left alone.
-        return raw if raw.isprintable() else m.group(0)
+        if not raw.isprintable():
+            # Not text -- a genuine numeric constant, leave it alone.
+            return m.group(0)
+        # Re-quote it. `0x61646d696e` *is* the string literal `'admin'` to MySQL,
+        # so unwrapping to bare `admin` would drop the quote characters the model
+        # legitimately treats as evidence, and the evasion would still work.
+        return f"'{raw}'"
 
     return HEX_LITERAL_RE.sub(sub, text)
 
