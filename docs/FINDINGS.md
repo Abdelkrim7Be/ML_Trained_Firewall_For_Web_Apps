@@ -539,3 +539,34 @@ first." The honest fix, an operator-configurable parameter-count limit ahead
 of this firewall, is future work; what shipped today is a bound that is at
 least small, fixed, and understood, rather than one that moved depending on
 how loaded the host happened to be.
+
+---
+
+# Running the Docker demo for real, for the first time
+
+`docker compose up --build` had never actually been run end to end before.
+Two things were wrong, and one thing that looked wrong was not.
+
+**The Juice Shop image has no shell and no `wget`.** The healthcheck was
+`wget --spider`, so every attempt failed with "executable file not found in
+$PATH", the container stayed unhealthy forever, and the WAF container, which
+waits on that healthcheck, never started. The image does ship `node`, so the
+check now runs a two-line inline script through it instead. Confirmed against
+a running container before changing the compose file, not assumed.
+
+**`docker-compose.yml` still set `WAF_SCORING_BUDGET_MS: 25`.** This predates
+the per-value model becoming the default and would have quietly reopened the
+exact fail-open hole fixed earlier in this document, in the one place someone
+new to this project is most likely to first run it. Removed; the container
+now picks up the corrected 180ms default from `waf/config.py` like everything
+else does.
+
+**What looked like a regression was the feature working.** A real attack
+against the running demo (`/rest/products/search`) came back with a live SQL
+error instead of a 403. The decision log showed the model scoring it at
+0.9999, correctly, with `would_block: true` and `reason: detect_mode` - the
+console's own DETECT/BLOCK toggle had been switched to detect while poking
+around the UI. Worth recording precisely because it looked like a bug for
+about a minute before the decision log made it obvious it was not one: the
+mode is live, runtime state, on purpose, and the log is the first place to
+check before assuming the model regressed.

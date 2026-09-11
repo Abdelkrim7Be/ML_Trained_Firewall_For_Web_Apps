@@ -7,6 +7,7 @@
 [![CI](https://github.com/Abdelkrim7Be/ML_Trained_Firewall_For_Web_Apps/actions/workflows/ci.yml/badge.svg)](https://github.com/Abdelkrim7Be/ML_Trained_Firewall_For_Web_Apps/actions/workflows/ci.yml)
 ![tests](https://img.shields.io/badge/tests-200%20passing-brightgreen)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
+[![license](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
 ![LightGBM](https://img.shields.io/badge/LightGBM-gradient%20boosting-9146FF?style=flat)
@@ -75,6 +76,18 @@ No framework, no build step - `console/app.js` is under 400 lines of plain JS
 against a JSON API, dark and dense on purpose. A console that celebrates every
 row with colour teaches an operator to stop reading it; the one accent colour
 here (amber) means exactly one thing: **blocked**.
+
+This isn't only tested against a purpose-built fake backend. `docker compose
+up --build` puts it in front of a real, genuinely vulnerable application
+(OWASP Juice Shop) and proxies it through unmodified:
+
+![OWASP Juice Shop, rendered live through the firewall](docs/images/juiceshop-demo.png)
+
+Point sqlmap at Juice Shop directly and it finds the SQL injection in its
+product search within seconds. Point it through the firewall on `:8080`
+instead and every probe comes back refused; Juice Shop itself stays reachable
+unprotected on `:3000` for the comparison. Full walkthrough in
+[`docs/DEMO.md`](docs/DEMO.md).
 
 ## Architecture
 
@@ -286,6 +299,16 @@ make train-synth # train on it
 make evaluate    # robustness, errors, external benchmark, adversarial, plots
 ```
 
+Training the real-trace corpus from scratch takes a while and models are
+gitignored, so all three trained model files are attached to the
+[`v1.0-models`](https://github.com/Abdelkrim7Be/ML_Trained_Firewall_For_Web_Apps/releases/tag/v1.0-models)
+release if you just want to run the firewall or the notebook without waiting:
+
+```sh
+curl -L -o models/model.joblib \
+  https://github.com/Abdelkrim7Be/ML_Trained_Firewall_For_Web_Apps/releases/download/v1.0-models/model.joblib
+```
+
 ## Testing
 
 **200 tests**, four layers, each answering a different question:
@@ -339,6 +362,13 @@ instead of "somewhere between 150 and 400 depending on load").
 Both concurrency fixes were verified by reproducing the hang, applying the
 fix, and rerunning the same load repeatedly clean. Full account, including how
 each was actually found, in [`docs/FINDINGS.md`](docs/FINDINGS.md).
+
+The Docker demo itself hadn't been run end to end before either: its
+healthcheck used `wget`, which the Juice Shop image doesn't have, so the
+firewall container could never start; and `docker-compose.yml` still hardcoded
+the old 25ms scoring budget, which would have reopened the fail-open issue
+above for anyone who tried the demo. Both fixed - see the addendum at the end
+of [`docs/FINDINGS.md`](docs/FINDINGS.md) for how each was actually caught.
 
 **What the reverse proxy already does right**, independent of this pass:
 detect mode by default (a WAF that blocks on day one gets switched off after

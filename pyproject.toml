@@ -2,6 +2,7 @@
 name = "mlwaf"
 version = "1.0.0"
 description = "ML-based detection of SQL injection and XSS in HTTP requests"
+license = "MIT"
 requires-python = ">=3.11"
 # Kept to what scoring a request actually needs. Anything used only while
 # training or reporting lives in the `train` extra, because it would otherwise
