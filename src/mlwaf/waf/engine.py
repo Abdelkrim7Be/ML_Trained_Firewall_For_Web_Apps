@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import threading
 import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -98,6 +99,12 @@ class Engine:
         self._bundle = bundle
         self._scorer: FastScorer | None = None
         self._cache = _LRU(self.settings.cache_size)
+        # decide() runs on a thread per concurrent request (asyncio.to_thread).
+        # The cache and stats below are mutated on every call, so without a lock
+        # concurrent hits corrupt the OrderedDict's linked list and can spin
+        # forever rather than raise, which is what a plain unsynchronized
+        # OrderedDict does under concurrent move_to_end/popitem.
+        self._lock = threading.Lock()
         self.ready = False
         # A model trained on individual values expects to be given individual
         # values. The bundle records which it is, so a request level model and a
@@ -151,7 +158,8 @@ class Engine:
         """Used by the console. Changing it invalidates cached verdicts."""
         if self._bundle:
             self._bundle["threshold"] = float(value)
-        self._cache.clear()
+        with self._lock:
+            self._cache.clear()
 
     # --- scoring -------------------------------------------------------------
     def _score_text(self, text: str, url_text: str, body_text: str,
@@ -209,9 +217,11 @@ class Engine:
             f"{view.method}\n{view.path}\n{view.query}\n{view.body}".encode()
         ).hexdigest()
 
-        cached = self._cache.get_(key)
+        with self._lock:
+            cached = self._cache.get_(key)
         if cached is not None:
-            self.stats["cached"] += 1
+            with self._lock:
+                self.stats["cached"] += 1
             return self._verdict(cached, time.perf_counter() - started, cached_hit=True)
 
         try:
@@ -219,7 +229,8 @@ class Engine:
                 self._score(view)
         except Exception:
             # A model that raises must not take the site down with it.
-            self.stats["errors"] += 1
+            with self._lock:
+                self.stats["errors"] += 1
             log.exception("scoring failed")
             return self._degraded(started, "scoring_error")
 
@@ -227,7 +238,8 @@ class Engine:
         if elapsed_ms > self.settings.scoring_budget_ms:
             # The answer arrived, but too late to be worth trusting as a gate.
             # Count it, let the request through, keep the score for the log.
-            self.stats["timeouts"] += 1
+            with self._lock:
+                self.stats["timeouts"] += 1
             log.warning("scoring exceeded budget", extra={"ms": round(elapsed_ms, 2)})
 
         payload = {
@@ -240,8 +252,9 @@ class Engine:
             "unit_count": n_units,
             "over_budget": elapsed_ms > self.settings.scoring_budget_ms,
         }
-        self._cache.put(key, payload)
-        self.stats["scored"] += 1
+        with self._lock:
+            self._cache.put(key, payload)
+            self.stats["scored"] += 1
         return self._verdict(payload, time.perf_counter() - started)
 
     # --- policy --------------------------------------------------------------

@@ -15,11 +15,22 @@ asserts the scores are identical to the pipeline's.
 
 from __future__ import annotations
 
+import threading
+
 import numpy as np
 from scipy import sparse
 
 from mlwaf.features import NUMERIC_COLS, _row_features
 from mlwaf.model import CLASSES
+
+# LightGBM's Booster.predict is not safe to call concurrently from multiple
+# native threads: under request concurrency (asyncio.to_thread per request),
+# simultaneous predict() calls into the same booster can hang inside the C++
+# side indefinitely rather than raise, which surfaces as the whole request
+# never completing. One lock, shared with Explainer since it wraps the same
+# booster, serializes just the predict call; everything around it (vectorising,
+# feature assembly) still runs concurrently.
+BOOSTER_LOCK = threading.Lock()
 
 
 class FastScorer:
@@ -82,5 +93,6 @@ class FastScorer:
         matrix = self.matrix(text, url_text, body_text, query, path, decode_depth)
         # num_threads=1 matters more than it looks: for a single row the thread
         # pool costs more to start than the trees cost to walk.
-        proba = self._booster.predict(matrix, num_threads=1)
+        with BOOSTER_LOCK:
+            proba = self._booster.predict(matrix, num_threads=1)
         return np.asarray(proba, dtype=np.float64).reshape(len(CLASSES))

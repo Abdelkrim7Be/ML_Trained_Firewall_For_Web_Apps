@@ -32,6 +32,7 @@ from mlwaf.decode import (
     strip_sql_comments,
     unwrap_mysql_comments,
 )
+from mlwaf.waf.scorer import BOOSTER_LOCK
 
 TOP_FEATURES = 8
 
@@ -115,7 +116,8 @@ class Explainer:
                       attack_class_index: int) -> list[dict]:
         """Largest per feature contributions toward the predicted attack class."""
         matrix = self._scorer.matrix(text, url_text, body_text, query, path, decode_depth)
-        contrib = self._booster.predict(matrix, pred_contrib=True, num_threads=1)
+        with BOOSTER_LOCK:
+            contrib = self._booster.predict(matrix, pred_contrib=True, num_threads=1)
         values = self._class_contributions(contrib, attack_class_index)
 
         order = np.argsort(-np.abs(values))[:TOP_FEATURES]
