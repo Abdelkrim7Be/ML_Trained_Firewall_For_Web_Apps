@@ -1,5 +1,14 @@
 # Model card, mlwaf SQLi/XSS detector
 
+> **This card describes the original ECML/PKDD-trained model** - the one this
+> project shipped first, preserved as `model_ecml.joblib` for comparison. It is
+> no longer what `model.joblib` serves. The model actually in production is
+> trained on real web-server traces and scores each parameter value
+> independently rather than the request as a whole; its own story, including
+> why the switch happened, is in [`docs/FINDINGS.md`](../docs/FINDINGS.md).
+> Everything below is accurate for the model it describes and is kept because
+> the comparisons throughout this repository depend on both existing.
+
 ## Intended use
 
 Inline classification of HTTP requests inside a reverse proxy, to decide whether a

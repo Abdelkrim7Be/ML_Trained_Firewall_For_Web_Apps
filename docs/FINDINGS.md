@@ -464,3 +464,78 @@ different analyser.
 Scoring values in isolation is what makes the model site independent, and it is
 also what leaves a very short payload with too little to go on. This is the
 trade the architecture makes, stated rather than hidden.
+
+---
+
+# Shipping the per-value model, and what broke on the way
+
+The scorecard above made the choice obvious: score per value, and promote
+`model_units.joblib` from an evaluated candidate to `models/model.joblib`, the
+one the firewall actually serves. The one before it, the ECML request-level
+model, is kept as `models/model_ecml.joblib` rather than deleted, because the
+comparisons throughout this document are only checkable if both sides still
+exist.
+
+Promoting it did not just improve numbers, it flipped three tests that had
+spent months asserting the old model's specific failures. `/users/42/profile`
+went from a documented false positive to a plain allow. `1' OR 1=1--`, the most
+recognisable SQL injection payload there is, went from a documented miss to a
+block. `admin'--` in a login body went the same way. These are not deleted;
+each became a regression test for the fix, so a reintroduced version of the old
+bug would turn a test red instead of going unnoticed.
+
+## Two concurrency bugs, found by making the firewall actually concurrent
+
+The endurance suite runs sixteen concurrent requests through one process, which
+is a small enough number that it should never be interesting. Twice, it hung
+the whole test indefinitely rather than failing it.
+
+**The decision cache is a plain `OrderedDict`, mutated from every scoring
+thread with no lock.** `asyncio.to_thread` runs `Engine.decide` on a fresh
+thread per concurrent request, and `_LRU.get_`/`.put` call `move_to_end` and
+`popitem`, which restructure the dict's internal linked list. Two threads
+doing that at once can corrupt the structure rather than raise, and the
+observed failure was exactly that: not an exception, a hang. Fixed with a
+`threading.Lock` around every cache and stats access in `Engine.decide`.
+
+**LightGBM's `Booster.predict` is not safe to call from multiple native
+threads at once**, even with `num_threads=1` on each call. `scorer.py` and
+`explain.py` both call into the same booster object, and under load both get
+called concurrently from different worker threads. The failure mode is the
+same as the cache: a hang inside native code, invisible to any lock on the
+Python side that doesn't also cover this call. Fixed with one lock
+(`BOOSTER_LOCK` in `scorer.py`) shared between the two call sites, so predict
+calls are serialised while the surrounding vectorisation still runs
+concurrently. A predict call costs about 1.5ms, so serialising it costs
+nothing at this scale.
+
+Both were verified by reproducing the hang, applying the fix, and rerunning
+the same concurrent load eight times cleanly before and never after.
+
+## Per-value scoring has its own latency ceiling, and the defaults did not know it
+
+Scoring a request as a whole costs one pass through the model. Scoring it per
+value costs one pass *per value*, measured at roughly 1.5ms each. The
+defaults inherited from the request-level model, `WAF_SCORING_BUDGET_MS=25`
+and a 256-value cap, were tuned for the wrong cost model:
+
+- At the old 256-value cap, a request with enough parameters could take up to
+  ~365ms to score, fourteen times the 25ms budget. Past the budget the request
+  is allowed through unscored, by design, because a broken model must not
+  become an outage. That design decision now meant an **ordinary form with
+  50-100 fields silently failed open**, not just an adversarial one.
+- The cap itself is a second, sharper edge. Units are scored in the order they
+  are parsed and the list is truncated at the cap, so a value that lands past
+  it is never scored at all, independent of the budget.
+
+Fixed by lowering `MAX_UNITS` to 64 (worst case ~96ms, comfortably inside a
+new 180ms budget that both request-level and per-value scoring fit inside) and
+rewriting `WAF_SCORING_BUDGET_MS`'s default and docstring to state the real
+cost model instead of the old one. This does not remove the second edge, it
+bounds it: 62 padding parameters ahead of a payload is still refused, 63 is
+not, exactly and reproducibly, down from the old, much wider and
+budget-dependent window of "somewhere around 150 to 400, whichever hits
+first." The honest fix, an operator-configurable parameter-count limit ahead
+of this firewall, is future work; what shipped today is a bound that is at
+least small, fixed, and understood, rather than one that moved depending on
+how loaded the host happened to be.

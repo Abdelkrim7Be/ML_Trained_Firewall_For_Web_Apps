@@ -44,11 +44,17 @@ mlwaf predict "/account" --method POST --body "name=O'Brien&city=Cork"
 ```
 
 ```
-BLOCK  attack_score=1.0000  threshold=0.9626
+BLOCK  attack_score=1.0000  threshold=0.6764   worst_unit=query:id
   benign  0.0000
   sqli    1.0000
   xss     0.0000
 ```
+
+`worst_unit` names the parameter that drove the score: `model.joblib` scores each
+value independently (see docs/FINDINGS.md), so the CLI reports which one lost.
+Point `--model models/model_ecml.joblib` at the earlier request-level model to
+compare against that architecture directly; it omits `worst_unit` and scores the
+request as a whole.
 
 ### Explore interactively
 

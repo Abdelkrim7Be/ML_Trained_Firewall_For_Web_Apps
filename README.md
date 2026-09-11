@@ -1,325 +1,386 @@
-# ML WAF: SQL injection and XSS detection in HTTP requests
+<div align="center">
 
-A supervised classifier that reads a full HTTP request, method, path, query and
-body, and decides whether it is benign, SQL injection, or XSS. Built to sit inline
-in a reverse proxy and refuse the requests it flags.
+# ML WAF
+
+### A machine-learned web application firewall that catches SQL injection and XSS in real HTTP traffic - and is honest about what it misses
+
+[![CI](https://github.com/Abdelkrim7Be/ML_Trained_Firewall_For_Web_Apps/actions/workflows/ci.yml/badge.svg)](https://github.com/Abdelkrim7Be/ML_Trained_Firewall_For_Web_Apps/actions/workflows/ci.yml)
+![tests](https://img.shields.io/badge/tests-200%20passing-brightgreen)
+![python](https://img.shields.io/badge/python-3.11%2B-blue)
+
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
+![LightGBM](https://img.shields.io/badge/LightGBM-gradient%20boosting-9146FF?style=flat)
+![scikit--learn](https://img.shields.io/badge/scikit--learn-F7931E?style=flat&logo=scikitlearn&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-WAL%20mode-07405E?style=flat&logo=sqlite&logoColor=white)
+
+</div>
+
+---
 
 ```
 $ mlwaf predict "/item?id=1%27+UNION+SELECT+password+FROM+users--"
-BLOCK  attack_score=1.0000  threshold=0.9626   sqli 1.0000
-
-$ mlwaf predict "/search?q=%3Cimg+src%3Dx+onerror%3Dalert%281%29%3E"
-BLOCK  attack_score=1.0000  threshold=0.9626   xss  1.0000
+BLOCK  attack_score=1.0000  threshold=0.6764   worst_unit=query:id
+  sqli  1.0000
 
 $ mlwaf predict "/account" --method POST --body "name=O'Brien&city=Cork"
-ALLOW  attack_score=0.0056  threshold=0.9626   benign 0.9944
+ALLOW  attack_score=0.0000  threshold=0.6764   worst_unit=body:name
+  benign  1.0000
 ```
 
-That last one is the point. It contains an apostrophe, so the previous version of
-this project blocked it, along with **52% of all legitimate traffic**.
+That second line is the whole point. It contains an apostrophe, and an earlier
+version of this project - and most WAFs built the way it was first built - block
+it, along with a double-digit percentage of everything else legitimate users send.
 
-## Two corpora, and why it matters
+This repository is two things in one: a supervised classifier that decides
+whether an HTTP request is `benign`, `sqli`, or `xss`, and a reverse proxy that
+puts that classifier inline in front of a real application, with an operator
+console to watch it work and a paper trail showing every wrong turn it took to
+get here.
 
-This project trains the same model twice. Once on ECML/PKDD 2007, the published
-academic corpus, and once on a corpus built from four public web server traces.
-The comparison is the point of the repository.
+## Contents
 
-| Measured on real traffic and outside payloads | ECML | Real traces |
-|---|---|---|
-| **False positives**, 21,167 real requests | 339, **1.60%** | 9, **0.0425%** |
-| SQL injection recall, 759 community payloads | 0.784 | **0.953** |
-| XSS recall, 1,936 community payloads | 0.826 | **0.997** |
-| Recall on unseen attack types | 0.209 | **0.760** |
-
-Thirty eight times fewer false positives, and better recall at the same time. Not
-a threshold trade, and not a better algorithm: the same pipeline, trained on data
-where benign traffic actually looks like benign traffic.
-
-```
-                                    ECML model      corpus model
-/users/42/profile                   0.9996 BLOCK    0.0000 allow
-/shuttle/missions/sts-78/news/      0.9995 BLOCK    0.0000 allow
-id=1' OR 1=1--                      0.5122 allow    1.0000 BLOCK
-id=1' AND SLEEP(5)--                0.1819 allow    1.0000 BLOCK
-```
-
-The story of how the first model came to block `/users/42/profile` while allowing
-the most famous SQL injection payload there is, and how it was found, is in
-[`docs/FINDINGS.md`](docs/FINDINGS.md). It is the most useful thing here.
-
-## Read this before the numbers
-
-This repository reports **0.80 recall** at a 0.1% false-positive rate. Search GitHub
-for "ML WAF" and you will find a hundred projects reporting 0.99, so it is worth
-being explicit about where the difference comes from. Reproduced here, in order,
-are the four things that turn 0.80 into 0.99 without improving a model at all:
-
-| Shortcut | What it does | Taken here? |
-|---|---|---|
-| Labels derived from the features | Model relearns a rule you wrote; accuracy approaches 100% by construction | No, labels are ECML/PKDD ground truth |
-| Random split without dedup | Near-identical rows land on both sides; the test set is half memorised | No, deduped before splitting (CSIC alone had 36,031 duplicates) |
-| Benign and attacks from different corpora | Model learns which *dataset* a row came from | No, one corpus, and the confound is measured (separability **1.000**) |
-| Threshold picked on the test set | Operating point chosen using the answers | No, fitted on validation, applied unchanged |
-
-The previous version of this project took the first shortcut, and
-[`POSTMORTEM.md`](POSTMORTEM.md) shows the arithmetic: its labels were a
-deterministic function of its own six features across all 45,233 rows, so its model
-could only rediscover a rule already written by hand, and it recovered it badly,
-catching 52% of attacks.
-
-Every number below is measured against a test split scored exactly once, plus three
-independent checks the model was never tuned on: five attack types held out of
-training, a separate 2010 corpus, and 646 third-party obfuscated payloads.
+- [See it work](#see-it-work)
+- [Architecture](#architecture)
+- [How detection works](#how-detection-works)
+- [Results: read this before the numbers](#results-read-this-before-the-numbers)
+- [The journey: three corpora, three architectures](#the-journey-three-corpora-three-architectures)
+- [Data](#data)
+- [Testing](#testing)
+- [Reliability hardening](#reliability-hardening)
+- [The console](#the-console)
+- [Getting started](#getting-started)
+- [Project layout](#project-layout)
+- [Limitations](#limitations)
+- [Where this started](#where-this-started)
 
 ---
 
-## Results
+## See it work
 
-Trained on 14,507 labelled HTTP requests from ECML/PKDD 2007. The test split is
-scored once, at the end.
+The operator console streams every decision live, with the score, the class,
+and - for anything interesting - the full decode trace and the exact n-grams
+that drove the verdict.
 
-### Model comparison (validation set)
+![The console watching live traffic, blocking SQLi and XSS](docs/images/console-live.png)
 
-| Model | macro-F1 | PR-AUC | SQLi recall | XSS recall | recall @ FPR | achieved FPR | ms/req |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Rule baseline (v0 heuristic) | 0.335 | 0.392 | 0.932 | 0.000 | 0.920 | 0.522 | 0.01 |
-| LogReg + char n-grams | 0.909 | 0.906 | 0.804 | 0.821 | 0.799 | 0.001 | 0.88 |
-| **LightGBM + n-grams + numeric** | 0.916 | 0.908 | 0.829 | 0.824 | 0.811 | 0.001 | 1.01 |
+Selecting a blocked request shows why: the normalisation chain that peeled the
+payload back to its canonical form, and LightGBM's exact per-feature
+contributions.
 
-### Final model, held-out test set
+![A blocked SQL injection, with its decode trace and feature contributions](docs/images/console-explain.png)
 
-| Class | Precision | Recall | F1 | Support |
-| --- | --- | --- | --- | --- |
-| `benign` | 0.933 | 0.995 | 0.963 | 2101 |
-| `sqli` | 0.971 | 0.802 | 0.878 | 455 |
-| `xss` | 0.993 | 0.818 | 0.897 | 346 |
+No framework, no build step - `console/app.js` is under 400 lines of plain JS
+against a JSON API, dark and dense on purpose. A console that celebrates every
+row with colour teaches an operator to stop reading it; the one accent colour
+here (amber) means exactly one thing: **blocked**.
 
-### Operating points
+## Architecture
 
-| FPR budget | Threshold | Recall | Precision | Achieved FPR | False blocks |
-| --- | --- | --- | --- | --- | --- |
-| 0.1% | 0.9165 | 0.803 | 0.997 | 0.10% | 2 / 2101 |
-| 0.5% | 0.5431 | 0.811 | 0.985 | 0.48% | 10 / 2101 |
-| 1.0% | 0.3925 | 0.814 | 0.969 | 1.00% | 21 / 2101 |
+```mermaid
+flowchart LR
+    client([Client]) -->|HTTP request| proxy["Reverse proxy\nproxy.py"]
 
-### Generalisation
+    subgraph engine["Scoring - off the event loop"]
+        direction TB
+        cache[("LRU decision\ncache")]
+        scorer["FastScorer\nTF-IDF + 25 numeric feats"]
+        booster[["LightGBM booster\n(one lock, all callers)"]]
+        cache -->|miss| scorer --> booster
+    end
 
-- Unseen attack types (never trained on): **0.209** (2029/9724)
-- CSIC 2010, separate corpus: recall **0.147**, FPR 0.003
-- Corpus discrimination accuracy: **1.000**
+    proxy -->|asyncio.to_thread| engine
+    engine -->|score ≥ threshold?| decision{Decision}
+    decision -->|block| blocked["403 + request id"]
+    decision -->|allow| upstream([Protected origin])
 
-![confusion matrix](reports/confusion_matrix.png)
+    proxy --> record["state.record()"]
+    record --> store[("SQLite, WAL mode\ndecision log + retention")]
+    record -->|score ≥ 0.10| explainer["Explainer\ndecode trace + SHAP-style\nfeature contributions"]
+    record --> bus["Broadcaster\n(bounded per-subscriber queues)"]
+    bus -->|Server-Sent Events| console(["Operator console"])
+    console -->|token-gated| api["Control plane API\n/_waf/*"]
+    api --> store
+    api --> engine
+```
 
-The rule baseline row is the honest headline. It is v0's heuristic, flag anything
-containing a quote, dash, paren, space or SQL keyword, and it catches 93% of SQL
-injection. It also blocks **52% of legitimate traffic**, and has no concept of XSS
-at all, which is why its macro-F1 is 0.335. Beating it is not about finding more
-attacks; it is about not destroying the site in the process.
+Everything under `/_waf` - the console, its API, `/metrics`, `/healthz` - shares
+the same port and process as the proxy, on purpose: one thing to deploy. Every
+route under `/_waf` other than liveness/readiness requires a bearer token
+(`WAF_ADMIN_TOKEN`), because a WAF whose off-switch is a single unauthenticated
+`POST` is a cheaper attack than evading the classifier.
 
-Note what the generalisation numbers say. Recall on the five attack types held out
-of training is 0.209, and on CSIC 2010 it is 0.147, both far below the 0.803 on
-matched traffic. The corpus discrimination check explains the second one: a
-throwaway classifier separates ECML from CSIC requests with **1.000** accuracy, so
-the two corpora share almost no surface structure and that number measures domain
-shift, not detection skill. Reporting it beats quietly hoping nobody checks.
-
-## Robustness to obfuscation
-
-Recall on clean corpus payloads answers a question no attacker asks. Every attack
-the model catches is rewritten by thirteen transforms that preserve what the
-payload does but change how it looks, and counted again.
-
-| Transform | Family | Bypass before | Bypass after | Change |
-| --- | --- | --- | --- | --- |
-| `case_flip` | encoding | 0.0% | 0.0% | ,  |
-| `url_encode` | encoding | 0.1% | 0.0% | ,  |
-| `double_url_encode` | encoding | 0.3% | 0.3% | ,  |
-| `html_entity_encode` | encoding | 0.0% | 0.0% | ,  |
-| `js_unicode_escape` | encoding | 0.1% | 0.0% | ,  |
-| `fullwidth` | encoding | 0.0% | 0.0% | ,  |
-| `mysql_version_comment` | sql syntax | ,  | 0.0% | new |
-| `space_to_comment` | sql syntax | 20.5% | 0.0% | -20.5% |
-| `space_to_tab` | whitespace | 4.8% | 0.0% | -4.8% |
-| `space_to_newline` | whitespace | 5.1% | 0.0% | -5.1% |
-| `char_function` | literal | 6.5% | 1.4% | -5.1% |
-| `hex_literal` | literal | 35.1% | 6.7% | -28.4% |
-| `concat_quotes` | literal | 0.0% | 0.0% | ,  |
-
-The `encoding` family is what the normalisation chain exists to undo, so a non-zero
-bypass there is a bug in `decode.py`, not a property of the model. That is how the
-chain is tested, and how three real defects were found and fixed:
-
-| Defect | Symptom | Cost |
-|---|---|---|
-| Comments deleted instead of spaced | `union/**/select` → `unionselect`, destroying the n-gram | 20.5% bypass |
-| Hex literals never decoded | `0x61646d696e` left as-is | 35.1% bypass |
-| `CHAR()` pattern written `chr?` | matched `ch`/`chr`, never `char` | 6.5% bypass |
-
-A fourth finding was about the harness rather than the model: the `hex_literal`
-transform was matching across stray apostrophes in ECML's sanitised noise and
-hex-encoding entire query strings, separators included, payloads no attacker would
-ever send. Constraining it to literals of at most 32 characters containing no `&`
-or `=` made it realistic, and the measured bypass fell from 28.7% to 6.7%.
-
-## Adversarial training
-
-Obfuscated copies of the attack rows are added to the training set. The transforms
-are split four/nine: the model trains on four and is scored on nine it has never
-seen, so the result measures generalisation rather than memorisation.
-
-| Transform | Seen in training | Recall before | Recall after | Change |
-| --- | --- | --- | --- | --- |
-| `case_flip` | yes | 0.801 | 0.803 | +0.001 |
-| `url_encode` | yes | 0.804 | 0.804 | +0.000 |
-| `space_to_tab` | yes | 0.801 | 0.803 | +0.001 |
-| `char_function` | yes | 0.790 | 0.805 | +0.015 |
-| `double_url_encode` | **no** | 0.798 | 0.796 | -0.001 |
-| `html_entity_encode` | **no** | 0.801 | 0.804 | +0.003 |
-| `js_unicode_escape` | **no** | 0.804 | 0.804 | +0.000 |
-| `fullwidth` | **no** | 0.803 | 0.803 | +0.000 |
-| `mysql_version_comment` | **no** | 0.801 | 0.803 | +0.001 |
-| `space_to_comment` | **no** | 0.801 | 0.803 | +0.001 |
-| `space_to_newline` | **no** | 0.801 | 0.803 | +0.001 |
-| `hex_literal` | **no** | 0.748 | 0.749 | +0.001 |
-| `concat_quotes` | **no** | 0.803 | 0.803 | +0.000 |
-
-**It barely moves the needle** ,  between +0.000 and +0.015. That is the honest
-result, and it is explainable: normalisation already rewrites these payloads to
-their canonical form before the model ever sees them, so the augmented rows are
-near-duplicates of the originals. Adversarial training is worth having as
-defence-in-depth for obfuscations the normaliser does not know about, but on this
-transform set the normaliser is doing essentially all of the work.
-
-## What it misses
-
-|  | Caught | Missed |
-| --- | --- | --- |
-| Median length | 291 | 221 |
-| Median decode depth | 1.0 | 0.0 |
-| Share with a body | 0.131 | 0.431 |
-| Median SQL keywords | 1.0 | 0.0 |
-| Median XSS keywords | 1.0 | 0.0 |
-
-Miss rate by class: sqli 21.5%, xss 17.9%.
-
-Two things stand out. Missed attacks have a median SQL/XSS keyword count of zero
-and a decode depth of zero, they carry no obvious signal at all. And they are
-three times more likely to carry a POST body.
-
-The body finding looked like a modelling problem, so URL and body were given
-separate n-gram spaces on the theory that a long body dilutes a short payload. It
-did not work: the miss rate for requests with a body was unchanged and held-out
-attack recall fell from 0.34 to 0.21, so the change was reverted. The likelier
-explanation is the corpus. ECML's sanitisation buried attack tokens inside random
-strings (`ntcebetween4oaenq`, `ghaving`), leaving little to recover.
-
-
----
-
-## How it works
+## How detection works
 
 ```
 HTTP request
    ↓
 normalise      recursive URL-decode → HTML entities → JS escapes →
-               data: URI base64 → unicode NFKC → strip SQL comments
+               data: URI base64 → unicode NFKC → strip SQL comments →
+               decode hex literals and CHAR() calls
    ↓
-features       char n-grams (3-5, TF-IDF)  +  25 numeric features
+decompose      the request into independently-scoreable units:
+               path, and every query/body/JSON-leaf parameter value
    ↓
-LightGBM       P(benign), P(sqli), P(xss)
+features       char n-grams (3-5, TF-IDF)  +  25 numeric features,
+               per unit
    ↓
-decision       block if 1 − P(benign) ≥ threshold
+LightGBM       P(benign), P(sqli), P(xss), per unit
+   ↓
+decision       block if 1 − P(benign) ≥ threshold, for the worst unit
 ```
 
-### Normalisation comes first
-
-Payloads do not arrive in the clear. Each of these is invisible to a naive
-character count, and each is handled before features are computed:
+**Normalisation comes first.** None of these are visible to a naive character
+count, and every one is unwrapped before a feature is ever computed:
 
 | Sent | Naive view | After normalisation |
 |---|---|---|
 | `%2527%2520OR%25201%3D1` | no quote | `' OR 1=1` |
 | `&#60;script&#62;` | no angle bracket | `<script>` |
-| `\u003cimg src=x\u003e` | no angle bracket | `<img src=x>` |
+| `<img src=x>` | no angle bracket | `<img src=x>` |
 | `un/**/ion sel/**/ect` | no keyword | `union select` |
+| `CHAR(0x61,0x64,0x6d)` | opaque | `adm` |
 | `＜script＞` (fullwidth) | no angle bracket | `<script>` |
 
-The number of decoding rounds a request needed is kept as a feature. Ordinary
-traffic needs zero or one.
+**Scoring happens per value, not per request.** A request is mostly context -
+the path, the parameter names, whatever sits next to the payload - and none of
+that is the attack. Scoring the request as a whole taught earlier versions of
+this model the vocabulary of whatever site trained it rather than the shape of
+an injection (the whole subject of [the journey](#the-journey-three-corpora-three-architectures)
+below). Scoring `modo=insertar`, `precio=8456`, and `id=1' OR 1=1--` as three
+independent values, and taking the worst, means the first two can never leak
+into the third.
 
-### Why character n-grams
+**Serving is not training.** Scoring one request through the full sklearn
+pipeline costs ~200ms - unusable inline, since pandas construction and
+sklearn's input validation cost the same whether the batch holds one row or
+three thousand. `waf/scorer.py` extracts the fitted vectoriser, scaler,
+selection mask and booster and calls them directly on raw numpy/scipy
+structures. Identical scores, asserted to `1e-12` in `tests/waf/test_scorer.py`.
 
-The previous version counted six things: quotes, double quotes, dashes, parens,
-spaces, SQL keywords. Those counts cannot separate a surname from an auth bypass:
+## Results: read this before the numbers
 
-| Request | `single_q` | verdict under counting |
+This repository reports recall well below 0.99. Search GitHub for "ML WAF" and
+most projects report 0.99+, so it's worth being explicit about where the gap
+comes from - these are the four shortcuts that turn 0.80 into 0.99 without
+improving a model at all, and whether this project takes them:
+
+| Shortcut | What it does | Taken here? |
 |---|---|---|
-| `q=O'Brien` | 1 | identical |
-| `q=admin' OR 1=1` | 1 | identical |
+| Labels derived from the features | Model relearns a rule you wrote; accuracy approaches 100% by construction | No - ground-truth labels, real traces |
+| Random split without dedup | Near-identical rows land on both sides; the test set is half memorised | No - deduped before splitting (36,031 CSIC duplicates alone) |
+| Benign and attacks from different corpora | Model learns which *dataset* a row came from, not the attack | No - same corpus, same paths, both labels |
+| Threshold picked on the test set | Operating point chosen using the answers | No - fitted on validation, applied unchanged |
 
-Character n-grams see `' or` and `nion sel` as features in their own right. The
-counters are kept alongside, they are cheap, and they make the feature
-importance plot readable, but they are no longer the whole model.
+The earlier version of this project took the first shortcut; [`POSTMORTEM.md`](POSTMORTEM.md)
+has the arithmetic. Every number below is measured against a test split scored
+once, plus checks the model was never tuned on.
 
-### Choosing the threshold
+### The scorecard: three models, eight real-world datasets
 
-The model emits a probability; `0.5` is an arbitrary place to cut it. A WAF that
-blocks 1% of real traffic is unusable, so the operating point is chosen by fixing
-a false-positive budget on validation data and reading off the recall that budget
-buys. The threshold is never tuned on the test set.
+One number at a time misled this project more than once (see the journey
+below). `mlwaf.scorecard` scores every model on every dataset at once.
 
----
+![Scorecard chart: three models across eight datasets](reports/scorecard.png)
+
+| Dataset | ECML baseline | Real traces, per request | **Real traces, per value (shipped)** |
+|---|---|---|---|
+| NASA real traffic - false positives | 2.48% | 0.00% | **0.00%** |
+| CSIC benign, unseen site - false positives | 0.20%¹ | 20.56% | **0.92%** |
+| Adversarial benign probes - false positives | 12.50% | 25.00% | **4.17%** |
+| SQL injection payloads - blocked | 79.87% | 95.70% | **96.24%** |
+| XSS payloads - blocked | 80.25% | 100% | **100%** |
+| Classic attack probes - blocked | 73.33% | 100% | 93.33% |
+| Obfuscated evasions - blocked | 100% | 100% | **100%** |
+
+¹ Looks best in this row and isn't: the ECML model blocks 14% of CSIC's
+anomalous traffic and 80% of community payloads. It isn't discriminating, it's
+declining to act - see [`docs/FINDINGS.md`](docs/FINDINGS.md#a-metric-of-mine-that-was-wrong).
+
+**What's shipped today is the right column** - `models/model.joblib` is the
+per-value, real-trace model. `models/model_ecml.joblib` is the original
+baseline, kept for exactly the comparisons on this page.
+
+### What's left, stated rather than hidden
+
+Two narrow, understood gaps survive in the shipped model:
+
+- **`nombre=libel` scores 1.000.** The n-gram `" li"` shares a feature with
+  SQL's `LIKE` and HTML's `<link>`. A plain `char` analyser was tried instead
+  of `char_wb` to remove the collision - false positives on CSIC went from
+  1.07% to 6.23% and SQLi precision fell from 0.86 to 0.61, so it was reverted.
+- **`admin'#` scores 0.187 and is allowed.** Seven characters, no body. Scoring
+  values in isolation is what makes the model site-independent, and it's also
+  what leaves a very short payload with too little to go on.
+
+Full write-up of both, and everything else this project got wrong on the way
+here, in [`docs/FINDINGS.md`](docs/FINDINGS.md) - genuinely the most useful
+document in this repository.
+
+## The journey: three corpora, three architectures
+
+The short version, in the order it was actually discovered:
+
+1. **Trained on ECML/PKDD 2007**, the only public corpus with full HTTP
+   requests *and* per-request attack labels. Its benign URLs were sanitised
+   into random strings during release; its attack payloads were left intact.
+   Result: **the model learned that the literal token `users` means attack**,
+   because in its training data a real English word appeared almost nowhere
+   else. `/users/42/profile` - about as ordinary a URL as exists - scored
+   0.9996 and was refused, while `1' OR 1=1--`, the single most recognisable
+   SQL injection payload there is, scored 0.481 and got through.
+2. **Benchmarked against the NASA-HTTP trace**, two months of real 1995 traffic
+   to a public web server. False positives jumped from a reported 0.1% to a
+   measured **1.60%**, and the tokens driving it were `shuttle`, `missions`,
+   `sts` - the vocabulary of a website about space shuttles, nothing to do
+   with SQL. Same bug, different words.
+3. **Rebuilt the corpus from real web-server traces** instead of a sanitised
+   academic one: same paths carry both a benign and an attack label, so a
+   token like `shuttle` or `users` appears equally on both sides and carries
+   no signal. False positives on real traffic: 339 → 9 (**38× fewer**), and
+   recall improved *at the same time* - proof the model was never short of
+   capacity, only of an example of what ordinary traffic looks like.
+4. **Discovered parameter-padding evaded even the fixed model**: two hundred
+   junk query parameters diluted a real injection's signal below threshold.
+   Fixed by decomposing the request into independently-scored values (point 5
+   below), which also, incidentally, made a `CSIC` recall number this project
+   had been quoting as a weakness turn out to be measuring the wrong thing -
+   CSIC's "anomalous" class is mostly parameter tampering and typos, not SQLi
+   or XSS, and a two-class detector correctly ignores it.
+5. **Landed on per-value scoring**: score every parameter, header-free and
+   context-free, and take the worst. Fixes the padding evasion outright (each
+   parameter is scored alone, so there's nothing left to dilute), and this is
+   the model shipped today.
+6. **Promoting it to production exposed a new, narrower issue**: scoring one
+   value costs ~1.5ms, so scoring dozens of them per request needs a real
+   latency budget, not the 25ms tuned for the old one-shot model. Fixed by
+   capping units scored per request at 64 and raising the scoring deadline to
+   180ms - bounding the tradeoff instead of hiding it. Full details in the
+   [reliability hardening](#reliability-hardening) section below.
+
+Every one of these was found by testing the firewall the way it's actually
+used - against real traffic and under real concurrency - rather than trusting
+a held-out slice of the same corpus it trained on. That gap between "scores
+well on its own test set" and "survives contact with a real site" is the
+throughline of this entire project, and [`docs/FINDINGS.md`](docs/FINDINGS.md)
+is the whole story, numbers included.
 
 ## Data
 
-[ECML/PKDD 2007 Discovery Challenge](http://www.lirmm.fr/pkdd2007-challenge/index.html),
-mirrored by [msudol/Web-Application-Attack-Datasets](https://github.com/msudol/Web-Application-Attack-Datasets).
-It is the only public corpus with full HTTP requests *and* per-request attack
-type labels.
-
-| Split | Rows | Purpose |
+| Source | Rows | Role |
 |---|---|---|
-| `benign` / `sqli` / `xss` | 14,507 | train / validate / test (60-20-20 stratified) |
-| 5 other attack types | 9,724 | never trained on, generalisation check |
-| CSIC 2010 | 25,060 | independent corpus, second generalisation check |
+| [ECML/PKDD 2007 Discovery Challenge](http://www.lirmm.fr/pkdd2007-challenge/index.html) | 14,507 labelled | original training corpus; later understood to be the cause of the vocabulary bug above |
+| Four public web-server traces, recombined by `mlwaf.synth` | ~5,000,000 requests | current training corpus - same paths carry both labels, so vocabulary carries no signal |
+| [CSIC 2010](https://www.tic.itefi.csic.es/dataset/) | 25,060 | independent corpus, generalisation + real benign-traffic check |
+| [NASA Kennedy Space Center HTTP trace](https://ita.ee.lbl.gov/html/contrib/NASA-HTTP.html) | 21,167 distinct | real, unlabelled 1995 production traffic - the check no corpus metric could substitute for |
+| Community payload lists, incl. [libinjection](https://github.com/libinjection/libinjection)'s bypass corpus | 2,695 | attack recall, assembled by people with no interest in this model looking good |
 
-Three deliberate choices:
-
-1. **Labels are ground truth, not derived.** v0 generated its labels with a rule
-   over the same six features it then trained on, making the task circular. Here
-   the attack type comes from the challenge organisers.
-2. **Both classes come from one corpus.** Benign from dataset A and attacks from
-   dataset B teaches a model to recognise the dataset, not the attack. A
-   corpus-discrimination check is reported below to show how separable the two
-   corpora are, so the cross-corpus number can be read honestly.
-3. **Duplicates are removed before splitting.** Near-identical rows straddling the
-   split leak the answer; CSIC alone contained 36,005 exact duplicates.
-
----
-
-## Reproduce
+Reproduce the pipeline:
 
 ```sh
 make install     # uv venv + deps
-make data        # download corpora, parse, dedupe   (~40 MB)
-make train       # train all three models, write reports/metrics.json
-make evaluate    # robustness, errors, external benchmark, adversarial, plots, tables
-make test        # 36 tests
+make data        # download corpora, parse, dedupe
+make synth       # build the real-trace training corpus
+make train-synth # train on it
+make evaluate    # robustness, errors, external benchmark, adversarial, plots
 ```
 
-`make all` runs the lot. Two evaluations are deliberately separate because they are
-slow and only needed when changing the design rather than the code:
+## Testing
+
+**200 tests**, four layers, each answering a different question:
+
+| Layer | Count | Answers |
+|---|---|---|
+| `tests/test_*.py` | 36 | Is the model's own pipeline - parsing, features, evasion transforms - correct? |
+| `tests/waf/` | 54 | Do the engine, proxy, and control plane work in isolation, in-process? |
+| `tests/e2e/test_full_stack.py` | 58 | Against a real running server: does it protect the origin, stay usable, explain itself? |
+| `tests/e2e/test_hardening.py` | 34 | Against a real server, adversarially: auth bypass, injection in every place a request can carry one, concurrent config changes |
+| `tests/e2e/test_endurance.py` | 18 | Under sustained concurrent load, over time: does it stay correct, stay fast, and not leak memory or disk? |
 
 ```sh
-make stability   # refit every candidate across 5 seeds, report mean ± std
-make adversarial # retrain on obfuscated payloads, score on held-out transforms
+make test    # unit + integration, 90 tests, ~10s
+make e2e     # end to end, starts real server processes, 110 tests, ~1min
 ```
 
-Score a single request:
+The last layer is the one that found the two most serious defects fixed in
+this session - see below.
+
+## Reliability hardening
+
+An earlier pass over this project answered "is the model any good?" This one
+answered "does the *system* survive concurrency?", and the answer, twice, was
+no - silently, which is worse than a crash.
+
+**A shared cache mutated from every scoring thread with no lock.** Scoring runs
+via `asyncio.to_thread`, one thread per concurrent request. The decision cache
+is a plain `OrderedDict`; two threads calling `move_to_end`/`popitem` on it at
+once can corrupt its internal linked list rather than raise an exception -
+which surfaces as the request simply never completing. Fixed with a
+`threading.Lock` around every cache and stats access.
+
+**LightGBM's booster is not safe to call from multiple native threads at
+once**, even with `num_threads=1` per call. Under load, `scorer.py` and
+`explain.py` both call into the same booster object from different threads
+simultaneously, and the failure is the same shape: a hang inside native code.
+Fixed with one lock shared between both call sites - a predict call costs
+about 1.5ms, so serialising it costs nothing at this scale.
+
+**Per-value scoring's own latency was invisible to the defaults it inherited.**
+Scoring 100 parameters at ~1.5ms each is 150ms; the budget carried over from
+the old one-shot model was 25ms. Past budget, a request is allowed through
+unscored by design (a broken model must not become an outage) - which meant an
+*ordinary* multi-field form could silently stop being scored at all. Fixed by
+capping scored units at 64 and raising the budget to 180ms, turning an
+unbounded, budget-dependent blind spot into a small, fixed, documented one (a
+request needs 63+ parameters ahead of its payload to evade it, reproducibly,
+instead of "somewhere between 150 and 400 depending on load").
+
+Both concurrency fixes were verified by reproducing the hang, applying the
+fix, and rerunning the same load repeatedly clean. Full account, including how
+each was actually found, in [`docs/FINDINGS.md`](docs/FINDINGS.md).
+
+**What the reverse proxy already does right**, independent of this pass:
+detect mode by default (a WAF that blocks on day one gets switched off after
+one false positive), fail-open on a scoring error or timeout, a 1MB cap on
+bodies read for scoring, non-root container, structured JSON logs with a
+request id, graceful drain on shutdown, and a `/metrics` endpoint.
+
+## The console
+
+Every decision keeps its score, not just its verdict, which is what makes the
+threshold slider possible: moving it recomputes verdicts over real recent
+traffic and shows the impact before anything is applied. Feedback recorded
+against a decision (`false positive` / `true positive`) is appended to a file
+in exactly the shape the training pipeline reads, so the loop back to the
+model is a file, not an integration.
 
 ```sh
-mlwaf predict "/item?id=1%27+UNION+SELECT+password+FROM+users--"
-mlwaf predict "/account" --method POST --body "name=O'Brien&city=Cork"
+docker compose up --build
+```
+
+| URL | What it is |
+|---|---|
+| `http://localhost:8080` | your application, behind the firewall |
+| `http://localhost:8080/_waf` | the operator console |
+| `http://localhost:3000` | the application directly, for comparison |
+
+The [sqlmap walkthrough in `docs/DEMO.md`](docs/DEMO.md) points a real scanner
+at both.
+
+## Getting started
+
+```sh
+make install     # uv venv + deps
+make train       # rule baseline, logistic regression, LightGBM
+make test        # 90 tests, ~10s
+mlwaf predict "/item?id=1%27+OR+1%3D1--"
+```
+
+Run the firewall standalone:
+
+```sh
+WAF_UPSTREAM=http://localhost:3000 WAF_MODE=block python -m mlwaf.waf.app
 ```
 
 Explore the data and model interactively:
@@ -328,199 +389,92 @@ Explore the data and model interactively:
 make notebook    # notebooks/01_data_and_model.ipynb
 ```
 
----
-
-## Layout
+## Project layout
 
 ```
 src/mlwaf/
-  download.py     fetch the corpora
-  parse.py        raw HTTP blocks → structured requests
-  decode.py       the normalisation chain
-  features.py     char n-grams + 28 numeric features
-  dataset.py      labelling, dedupe, held-out splits
-  model.py        rule baseline, logistic regression, LightGBM
-  train.py        fit, compare, select threshold, persist
-  evaluate.py     metrics, including calibration
-  evasion.py      13 obfuscation transforms, 4 families
-  robustness.py   recall decay per transform
-  adversarial.py  train on 4 transforms, score on 9 held out
-  external.py     third-party obfuscated payload benchmark
-  errors.py       what the model misses, and whether it has a shape
-  stability.py    refit across seeds; separates real gains from noise
-  plots.py        report figures
-  report.py       README tables, generated from the JSON
-  cli.py          mlwaf <download|dataset|train|plots|predict>
+  download.py, parse.py, decode.py     fetch, structure, normalise raw requests
+  features.py, units.py                char n-grams + numeric features; request decomposition
+  dataset.py, synth.py                 labelling/dedupe; the real-trace corpus builder
+  model.py, train.py, evaluate.py      candidates, fitting, calibrated metrics
+  evasion.py, robustness.py,
+  adversarial.py, external.py          obfuscation transforms and what survives them
+  scorecard.py                         every model, every dataset, one view
+  cli.py                               mlwaf <download|dataset|train|plots|predict>
+  waf/
+    proxy.py       the reverse proxy - the catch-all route
+    engine.py       cache, decision policy, unit-decomposition dispatch
+    scorer.py       the fast serving path (no pandas, no sklearn validation)
+    explain.py       decode trace + SHAP-style feature contributions
+    store.py         SQLite decision log, WAL mode, retention
+    state.py, api.py  shared app state; the control plane
+    console/          the operator UI - no framework, no build step
 notebooks/        exploration only, never runtime
-models/           model.joblib + MODEL_CARD.md
-reports/          metrics, tables, figures, all generated
+models/           model.joblib (shipped) + model_ecml.joblib (baseline) + MODEL_CARD.md
+reports/          metrics, scorecard, figures - all generated, none hand-edited
+docs/
+  FINDINGS.md      the debugging journey in full - start here
+  USAGE.md, DEMO.md, WAF_PLAN.md
 ```
-
-Notebooks explore; `src/` runs. In v0 the notebooks *were* the runtime, which is
-why nothing in it could be tested or deployed.
-
----
 
 ## Limitations
 
-- ECML/PKDD 2007 is old, and its URLs and parameter values were randomised during
-  sanitisation. Real traffic has structure this corpus does not.
-- **Fixed transform catalogue, not an adaptive attacker.** The evasion suite
-  applies thirteen hand-written obfuscations. It does not *search* for a bypass the
-  way a genetic mutation tool such as WAF-A-MoLE does, so these numbers are a floor
-  on robustness, not a ceiling.
-- **Generalisation is the weak point.** 0.803 recall on matched traffic, 0.209 on
-  attack types held out of training, 0.147 on a separate corpus. The last figure is
-  heavily confounded by domain shift (corpus discrimination accuracy 1.000), but
-  the first two are not, and the gap is real.
-- Two attack classes are trained; five more are only measured.
-- Per-request only, no session state, so slow or distributed attacks that look
-  benign one request at a time are invisible.
+- **Per-request only.** No session state, so slow or distributed attacks that
+  look benign one request at a time are invisible to it.
+- **Two attack classes trained** (`sqli`, `xss`); five more are measured but
+  not detected.
+- **Fixed transform catalogue, not an adaptive attacker.** Robustness numbers
+  are a floor, not a ceiling - they say nothing about a genetic-mutation
+  fuzzer such as WAF-A-MoLE.
+- **A parameter count above 64, with the payload placed after it, is not
+  scored** - see [reliability hardening](#reliability-hardening). Pair with a
+  gateway-level parameter limit for defense in depth.
+- **Single process.** The console's live stream and decision cache are per
+  process; scaling past ~80 rps means running several behind a load balancer,
+  each with its own console view, until the event bus and cache move out of
+  process.
+- Two narrow, understood scoring gaps remain - see
+  [results](#results-read-this-before-the-numbers) above.
 
-See [`models/MODEL_CARD.md`](models/MODEL_CARD.md) for the full card.
+See [`models/MODEL_CARD.md`](models/MODEL_CARD.md) for the full card on the
+original baseline model, kept for comparison.
 
-## Part 2: the firewall
+## Where this started
 
-The classifier decides; the firewall acts. `src/mlwaf/waf/` puts the model inline
-in a reverse proxy that refuses requests, with an operator console to see why.
-
-```sh
-docker compose up --build
-```
-
-| | |
-|---|---|
-| http://localhost:8080 | OWASP Juice Shop, behind the firewall |
-| http://localhost:8080/_waf | the operator console |
-| http://localhost:3000 | Juice Shop directly, for comparison |
-
-```
-$ curl -i "localhost:8080/rest/products/search?q=1%27+UNION+SELECT+1,2,3--"
-HTTP/1.1 403 Forbidden
-X-MLWAF-Action: block
-{"error":"request_blocked","request_id":"f6d2367e-00000002"}
-```
-
-How to drive all of it: [`docs/USAGE.md`](docs/USAGE.md). The sqlmap walkthrough:
-[`docs/DEMO.md`](docs/DEMO.md). Design and reasoning: [`docs/WAF_PLAN.md`](docs/WAF_PLAN.md).
-What end to end testing exposed: [`docs/FINDINGS.md`](docs/FINDINGS.md).
-
-### Every decision is explainable
-
-Most firewalls answer "blocked" and stop, which leaves an operator unable to tell
-an attack from a false positive. This one records how the payload came apart:
-
-```
-raw               id=1%2527%2520UNION%2520SELECT%2520password%2520FROM%2520users--
-decode round 1    id=1%27%20UNION%20SELECT%20password%20FROM%20users--
-decode round 2    id=1' UNION SELECT password FROM users--
-unicode and case  id=1' union select password from users--
-```
-
-and which fragments drove the score, from LightGBM's exact per feature SHAP
-values:
-
-```
-users  +1.44    uni  +0.84    lect  +0.82
-```
-
-### The threshold is a control, not a constant
-
-Every stored decision keeps its score, so moving the console's threshold slider
-recomputes verdicts over real recent traffic and reports what would change before
-anything is applied. Part 1's false positive budget becomes something an operator
-can feel rather than a number in a table.
-
-### Serving is not training
-
-Scoring one request through the training pipeline took about 200ms, which is
-unusable inline: pandas construction and sklearn validation cost the same whether
-the batch holds one row or three thousand. `waf/scorer.py` extracts the fitted
-vectoriser, scaler, selection mask and booster and calls them directly.
-
-| | per request |
-|---|---|
-| through the sklearn pipeline | ~274 ms |
-| through the serving path | ~10 ms |
-
-Identical scores, asserted to `1e-12` in `tests/waf/test_scorer.py`. Measured live
-over 288 requests: mean **6.3 ms**, 99% under 10 ms, no timeouts.
-
-### Production behaviour
-
-- **Detect mode by default.** A WAF is rolled out by watching what it would have
-  blocked, reviewing that queue, then enforcing. Shipping something that blocks on
-  first run is how you get switched off after one false positive.
-- **Fail open, and alert.** If scoring raises or exceeds its budget, the request is
-  allowed and counted as unscored. A broken model must not become an outage.
-  `WAF_FAIL_MODE=closed` inverts it.
-- **Bounded bodies.** Read up to 1 MB for scoring, streamed through untouched
-  beyond that. A proxy that buffers unbounded uploads is the outage it was meant
-  to prevent.
-- Non root container, readiness gated on a warmed model, Prometheus metrics,
-  structured JSON logs with a request id, graceful drain.
-
-### What end to end testing found
-
-Part 1 scored the model against held out slices of its own corpus. Part 2 put it
-in front of a web application and sent it the traffic a real site receives. That
-exposed something no corpus metric did:
-
-```
-/users/42/profile        score 0.9996   REFUSED
-/user/42/profile         score 0.265    allowed
-/accounts/42/profile     score 0.003    allowed
-
-id=1' OR 1=1--           score 0.481    allowed
-id=1' OR 1=1-- users     score 0.992    REFUSED
-```
-
-**The model largely learned that the token `users` means attack.** ECML/PKDD was
-sanitised before release, so its benign URLs are randomised strings while its
-attack payloads were left intact. Real English words therefore appear almost only
-inside attacks, and no split of that corpus can reveal the problem because the held
-out benign traffic is randomised too.
-
-Scored against the [NASA Kennedy Space Center HTTP trace](https://ita.ee.lbl.gov/html/contrib/NASA-HTTP.html),
-two months of requests to a real public web server, the picture is worse and
-clearer. **339 of 21,167 real requests were refused, a false positive rate of
-1.60%** against the 0.1% the corpus reported. The words driving those refusals:
-
-```
-shuttle 336    missions 326    sts 287    images 87
-movies   68    sounds    59    news  55    docs   39
-```
-
-Nothing to do with SQL injection. They are the words that appear in the URLs of a
-website about space shuttles. The model treats any ordinary English word in a URL
-as evidence of an attack, because in its training data that is the only place one
-ever appeared.
-
-Recall on 2,695 community payloads, including libinjection's bypass corpus, holds
-at 0.78 for SQLi and 0.83 for XSS. So the model recognises attacks reasonably and
-fails to recognise that ordinary traffic is not one.
-
-It explains the part 1 numbers that looked merely disappointing: 0.147 recall
-cross corpus, 0.209 on unseen attack types, corpus separability 1.000. Those were
-symptoms; this is the mechanism. Full write up, including the payloads that get
-through, in [`docs/FINDINGS.md`](docs/FINDINGS.md).
-
-The firewall itself is fine: 57 end to end checks pass, covering blocking, origin
-isolation, obfuscation, concurrency, restart persistence, graceful shutdown and
-live streaming. The defect is in the data, which is why the fix is generating
-realistic traffic rather than adding trees.
-
-It is also the argument for every conservative default here. Enforcing this model
-on a real site would refuse every URL containing `users`, and detect mode plus the
-review queue surfaces that on the first afternoon at no cost.
-
-### What v0 did instead
+This began as an end-of-studies project (PFE) at **ESTM - École Supérieure de
+Technologie de Meknès**, Morocco: `Notebooks_jupyter/` still holds the original
+work. It trained unsupervised KMeans clustering over six hand-counted features
+(`single_q`, `double_q`, `dashes`, ...) to sort requests into "good" and "bad"
+clusters, and wired the result into a proxy that logged an intrusion and then
+forwarded the request anyway:
 
 ```python
 if result['Cluster'][0] == "Cluster 1":
     print('Intrusion Detected !')
+# ...forwarded regardless. No async, no tests, no explainability,
+# GET paths only - POST bodies, where most SQLi actually travels,
+# were never inspected at all.
 ```
 
-It printed, then forwarded the request anyway, and read GET paths only, so POST
-bodies were never inspected. `tests/waf/test_proxy.py` asserts the difference: the
-fake upstream records every request it receives, and after an attack it is empty.
+Everything in this repository - the supervised multi-class model, the
+real-trace corpus, per-value scoring, the async reverse proxy with an
+explainable operator console, the 200-test suite, and the reliability fixes
+above - is the rebuild that followed, done properly and documented as it went,
+including every wrong turn. `tests/waf/test_proxy.py` asserts the most basic
+difference directly: the fake upstream records every request it receives, and
+after a real attack, it's empty.
+
+The rebuild was done with Claude (Anthropic) as a pair-programming and
+debugging partner throughout, most recently for the concurrency fixes and
+model promotion in [reliability hardening](#reliability-hardening). Worth
+saying plainly rather than leaving to guesswork.
+
+---
+
+<div align="center">
+
+See [`docs/FINDINGS.md`](docs/FINDINGS.md) for the full debugging history, and
+[`docs/USAGE.md`](docs/USAGE.md) / [`docs/DEMO.md`](docs/DEMO.md) for driving
+the running system.
+
+</div>
