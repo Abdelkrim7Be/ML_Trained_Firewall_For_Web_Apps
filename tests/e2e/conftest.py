@@ -13,7 +13,7 @@ import socket
 import subprocess
 import threading
 import time
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import ClassVar
 
@@ -67,7 +67,11 @@ class _Origin(BaseHTTPRequestHandler):
 class Origin:
     def __init__(self):
         self.port = free_port()
-        self._server = HTTPServer(("127.0.0.1", self.port), _Origin)
+        # Threading, not the plain server: a single threaded origin serialises
+        # every request, so a concurrency test measures the fixture's
+        # accept loop rather than the firewall and times out at sixteen
+        # workers while passing at four.
+        self._server = ThreadingHTTPServer(("127.0.0.1", self.port), _Origin)
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
 
     def start(self):

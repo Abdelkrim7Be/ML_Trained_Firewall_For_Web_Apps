@@ -6,7 +6,7 @@ receives and the tests check it stayed empty.
 """
 
 import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import httpx
 import pytest
@@ -41,7 +41,7 @@ class _Upstream(BaseHTTPRequestHandler):
 
 @pytest.fixture(scope="module")
 def upstream():
-    server = HTTPServer(("127.0.0.1", 0), _Upstream)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _Upstream)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     yield f"http://127.0.0.1:{server.server_port}"
@@ -93,20 +93,21 @@ def test_injection_in_a_post_body_is_refused(client):
     assert RECEIVED == []
 
 
-def test_a_weak_injection_gets_through_at_this_threshold(client):
-    """A known gap, asserted rather than hidden.
+def test_a_previously_weak_injection_is_now_caught(client):
+    """A gap that closed when the model changed, not papered over.
 
-    `admin'--` scores around 0.79, under the 0.96 operating point, so it is
-    allowed. That is the 20% miss rate the training run reports, showing up where
-    you would expect it: a short payload with little signal. Lowering the
-    threshold catches it and costs false positives, which is the whole trade the
-    threshold exists to express.
+    Under the ECML-trained request-level model, `admin'--` scored around 0.79,
+    under its 0.96 operating point, and was allowed. The real-trace per-value
+    model scores this parameter value on its own, with no request-level dilution
+    to survive, and catches it comfortably above its own 0.68 operating point.
+    The narrowest surviving miss is `admin'#`, seven characters with no body:
+    see docs/FINDINGS.md.
     """
     r = client.post("/login", content="username=admin'--&password=x",
                     headers={"Content-Type": "application/x-www-form-urlencoded"})
-    assert r.status_code == 200
+    assert r.status_code == 403
     row = client.get("/_waf/decisions", headers=AUTH).json()["decisions"][0]
-    assert 0.5 < row["score"] < row["threshold"]
+    assert row["score"] >= row["threshold"]
 
 
 def test_apostrophe_in_a_name_is_allowed_through(client):

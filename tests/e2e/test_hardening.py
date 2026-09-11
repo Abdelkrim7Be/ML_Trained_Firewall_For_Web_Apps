@@ -93,7 +93,7 @@ def test_very_long_url_is_handled(client):
     assert r.status_code in (200, 403, 414, 431)
 
 
-@pytest.mark.parametrize("params", [0, 50, 100, 140])
+@pytest.mark.parametrize("params", [0, 30, 50, 62])
 def test_moderate_padding_does_not_hide_an_attack(client, origin, params):
     padding = "&".join(f"f{i}=v{i}" for i in range(params))
     query = f"{padding}&id={quote(ATTACK)}" if params else f"id={quote(ATTACK)}"
@@ -101,28 +101,33 @@ def test_moderate_padding_does_not_hide_an_attack(client, origin, params):
     assert origin.received == []
 
 
-@pytest.mark.parametrize("params", [200, 300, 400])
+@pytest.mark.parametrize("params", [63, 100, 300])
 def test_heavy_parameter_padding_evades_this_model(client, params):
     """A working evasion, asserted rather than hidden. See docs/FINDINGS.md.
 
-    Appending enough junk parameters drops the score below the operating point
-    while leaving the payload untouched. The tipping point is around 150: 140
-    scores 0.998 and is refused, 200 scores 0.928 and is not. Values either side
-    of the boundary are avoided here because a request that sits exactly on it
-    flips with small changes in encoding.
+    The old, request-level model was evaded by n-gram dilution: enough junk
+    parameters spread the vectoriser's weight thin enough that the attack's own
+    n-grams lost relative weight (tipping point ~150 params). Scoring each
+    parameter value on its own, independent of its neighbours, closes that
+    hole entirely: dilution has nothing left to dilute.
 
-    Padding with junk *text* does not work, which points at the cause. Each new
-    parameter name contributes fresh character n-grams, and the vectoriser's
-    normalisation spreads the document's weight across all of them, so the
-    attack's n-grams lose relative weight. Repeated prose adds length without
-    adding distinct n-grams, and scores stay at 1.000.
+    What replaces it is narrower. `units.py` scores at most MAX_UNITS=64 values
+    per request and drops the rest, because scoring one value costs about 1.5ms
+    and an unbounded count turns an ordinary request into a multi-second one.
+    A payload placed after the 64th parameter is simply never looked at. The
+    boundary is exact: 62 padding parameters plus the path and the payload is
+    64 units and is still refused; 63 pushes the payload to unit 65 and it is
+    not scored at all. This is bounded and this is the honest tradeoff, not a
+    subtler version of the old bug: an operator who expects requests wider than
+    a few dozen fields should cap parameter count ahead of this firewall,
+    the same way they would for any other WAF.
     """
     padding = "&".join(f"f{i}=v{i}" for i in range(params))
     assert client.get(f"/item?{padding}&id={quote(ATTACK)}").status_code == 200
 
 
 def test_padding_with_prose_does_not_evade(client, origin):
-    """The contrast that identifies the mechanism as n-gram dilution."""
+    """A large body does not evade either: it is one unit, scored whole."""
     filler = "lorem ipsum dolor sit amet " * 200
     r = client.get(f"/item?id={quote(ATTACK)}&note={quote(filler)}")
     assert r.status_code == 403

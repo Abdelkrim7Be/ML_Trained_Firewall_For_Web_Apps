@@ -19,19 +19,32 @@ from .conftest import AUTH
 # Split by what the model actually does, not by what we would like it to do.
 # Locking in the misses is deliberate: it makes a regression visible in either
 # direction, and it stops the suite quietly implying a recall this model does not
-# have. Scores are from the shipped model at threshold 0.963.
+# have. Scores are from the shipped model (real-trace corpus, per-value scoring,
+# threshold 0.676).
+#
+# The canonical `1' OR 1=1--` and three others used to be MISSED_SQLI under the
+# ECML-trained model (see docs/FINDINGS.md): that model had only ever seen real
+# English words inside attack payloads, so a short, ordinary-looking SQL
+# injection with no rare token like "users" scored below its threshold. The
+# real-trace model was never taught that vocabulary correlation in the first
+# place, so it catches all four. Kept here rather than deleted, so a regression
+# back to that failure mode would show up as a test going red, not quiet.
 
 CAUGHT_SQLI = [
     "1' UNION SELECT username,password FROM users--",   # 1.000
-    "1' OR '1'='1",                                     # 0.999
-    "admin' OR 1=1#",                                   # 0.970
-    "1' UNION ALL SELECT NULL,version()--",             # 0.988
+    "1' OR '1'='1",                                     # 1.000
+    "admin' OR 1=1#",                                   # 1.000
+    "1' UNION ALL SELECT NULL,version()--",             # 1.000
+    "1'; DROP TABLE users--",                            # 1.000, missed under ECML
+    "1' AND SLEEP(5)--",                                 # 1.000, missed under ECML
+    "1' OR 1=1--",                                       # 1.000, missed under ECML
+    "1' UNION SELECT password--",                        # 1.000, missed under ECML
 ]
 MISSED_SQLI = [
-    ("1'; DROP TABLE users--", 0.938),                  # just under the threshold
-    ("1' AND SLEEP(5)--", 0.227),                       # blind injection, little signal
-    ("1' OR 1=1--", 0.481),                             # the canonical payload, missed
-    ("1' UNION SELECT password--", 0.867),              # same query minus "users"
+    ("admin'#", 0.187),  # 7 characters: a quote and a hash. Scored on its own,
+                         # with no surrounding request to add context, this is
+                         # close to the least a payload can carry and still be
+                         # one. See docs/FINDINGS.md.
 ]
 CAUGHT_XSS = [
     "<script>alert(1)</script>",
@@ -56,10 +69,12 @@ BENIGN = [
     "/search?q=O'Brien", "/search?q=don't stop", "/blog/2024/01/a-post-about-sql",
     "/api/v1/orders?status=shipped&from=2026-01-01",
 ]
-# Ordinary paths this model refuses. See docs/FINDINGS.md: it learned the literal
-# token "users" as evidence of an attack, because ECML's benign URLs are
-# randomised strings that never contain real English words.
-KNOWN_FALSE_POSITIVES = ["/users/42/profile"]
+# Ordinary paths the ECML-trained model used to refuse outright (score 0.9996)
+# because it had learned the literal token "users" as evidence of an attack: its
+# benign training URLs were randomised strings that never contained a real
+# English word. See docs/FINDINGS.md. Kept as a regression test for the fix
+# rather than removed, so a reintroduced vocabulary correlation shows up here.
+FORMERLY_FALSE_POSITIVES = ["/users/42/profile"]
 
 
 def _flagged(client) -> list[dict]:
@@ -90,6 +105,17 @@ def test_known_misses_are_still_missed(client, payload, expected_score):
     assert row["score"] < row["threshold"]
 
 
+@pytest.mark.parametrize("path", FORMERLY_FALSE_POSITIVES)
+def test_formerly_false_positive_paths_are_now_correct(client, path):
+    """The vocabulary-correlation false positive from docs/FINDINGS.md, fixed.
+
+    `/users/42/profile` scored 0.9996 and was refused under the ECML-trained
+    model. The real-trace model allows it, because its benign training data
+    contains ordinary URLs with ordinary English words in them.
+    """
+    assert client.get(path).status_code == 200
+
+
 @pytest.mark.parametrize("payload", CAUGHT_XSS)
 def test_xss_never_reaches_the_origin(client, origin, payload):
     r = client.get(f"/search?q={quote(payload)}")
@@ -103,18 +129,6 @@ def test_obfuscated_attacks_are_still_refused(client, origin, payload):
     r = client.get(f"/item?id={quote(payload, safe='%')}")
     assert r.status_code == 403, payload
     assert origin.received == []
-
-
-@pytest.mark.parametrize("path", KNOWN_FALSE_POSITIVES)
-def test_known_false_positives_are_still_wrong(client, path):
-    """An ordinary path this model refuses. Recorded, not papered over.
-
-    `/users/42/profile` is about as common a URL as exists, and it scores 0.9996.
-    The cause is in docs/FINDINGS.md: the training corpus never showed the model
-    a benign URL containing a real English word, so it learned the token "users"
-    as evidence. This is the single strongest argument for the detect mode default.
-    """
-    assert client.get(path).status_code == 403
 
 
 def test_injection_in_a_post_body_is_refused(client, origin):
