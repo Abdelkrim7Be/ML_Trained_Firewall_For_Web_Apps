@@ -20,12 +20,7 @@ def _predict(args: argparse.Namespace) -> None:
     path, _, query = args.url.partition("?")
 
     if bundle.get("unit_mode"):
-        # This model was fit on individual parameter values, not whole requests.
-        # Scoring a full request through it the other way, as this CLI did before
-        # the model was unit-decomposed, would run real inputs through a pipeline
-        # fit on a different shape of text and report a number that means nothing.
-        # Mirror mlwaf.waf.engine.Engine._score_units: score every value on its
-        # own and report whichever one drove the verdict.
+        # fit on individual values, not whole requests; mirrors Engine._score_units
         from mlwaf.units import decompose
 
         rows, labels = [], []

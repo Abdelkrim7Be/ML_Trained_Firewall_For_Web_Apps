@@ -23,13 +23,8 @@ from scipy import sparse
 from mlwaf.features import NUMERIC_COLS, _row_features
 from mlwaf.model import CLASSES
 
-# LightGBM's Booster.predict is not safe to call concurrently from multiple
-# native threads: under request concurrency (asyncio.to_thread per request),
-# simultaneous predict() calls into the same booster can hang inside the C++
-# side indefinitely rather than raise, which surfaces as the whole request
-# never completing. One lock, shared with Explainer since it wraps the same
-# booster, serializes just the predict call; everything around it (vectorising,
-# feature assembly) still runs concurrently.
+# LightGBM's Booster.predict isn't safe under concurrent native threads; shared
+# with Explainer, which predicts on the same booster.
 BOOSTER_LOCK = threading.Lock()
 
 

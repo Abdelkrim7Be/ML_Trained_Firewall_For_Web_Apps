@@ -99,11 +99,7 @@ class Engine:
         self._bundle = bundle
         self._scorer: FastScorer | None = None
         self._cache = _LRU(self.settings.cache_size)
-        # decide() runs on a thread per concurrent request (asyncio.to_thread).
-        # The cache and stats below are mutated on every call, so without a lock
-        # concurrent hits corrupt the OrderedDict's linked list and can spin
-        # forever rather than raise, which is what a plain unsynchronized
-        # OrderedDict does under concurrent move_to_end/popitem.
+        # guards cache/stats: decide() runs concurrently, one thread per request
         self._lock = threading.Lock()
         self.ready = False
         # A model trained on individual values expects to be given individual
