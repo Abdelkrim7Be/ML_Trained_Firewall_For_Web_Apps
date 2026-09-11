@@ -85,3 +85,4 @@ data/raw/
 data/processed/
 models/*.joblib
 .venv/
+docker-compose.override.yml
