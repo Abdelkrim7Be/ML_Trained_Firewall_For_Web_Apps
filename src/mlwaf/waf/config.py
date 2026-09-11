@@ -40,11 +40,13 @@ class Settings(BaseSettings):
     # drop traffic than serve it unscored.
     fail_mode: str = Field(default="open", pattern="^(open|closed)$")
     scoring_budget_ms: float = Field(
-        default=25.0,
+        default=180.0,
         description="Deadline for scoring. Past it the request is allowed and "
         "counted, so a slow model costs protection rather than availability. "
-        "Measured p50 through the serving path is a few milliseconds, so this "
-        "leaves roughly an order of magnitude of headroom under load.",
+        "A request-level model scores in a few milliseconds; a unit-decomposition "
+        "model scores every parameter value separately (~1.5ms each, capped at "
+        "MAX_UNITS in units.py), so this has to cover that worst case rather than "
+        "the typical one, or ordinary multi-field requests fail open silently.",
     )
 
     # --- limits --------------------------------------------------------------

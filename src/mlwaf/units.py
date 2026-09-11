@@ -40,7 +40,15 @@ from mlwaf.decode import decode, request_parts
 
 # A body larger than this is not parsed into units; it is scored as one blob.
 MAX_UNIT_CHARS = 4096
-MAX_UNITS = 256
+# Scoring a unit costs roughly 1.5ms (a full TF-IDF + LightGBM pass), so this
+# bounds worst case latency to a few hundred ms rather than the multi-second
+# stall 256 used to allow. Units beyond the cap are not scored, so this is
+# paired with WAF_SCORING_BUDGET_MS in waf/config.py: raising one without the
+# other either reopens the latency hole or shrinks the scored window for no
+# latency benefit. A request with more parameters than this is unusual enough
+# that a reverse proxy or gateway-level parameter count limit is the right
+# place to reject it outright, ahead of this firewall.
+MAX_UNITS = 64
 
 
 @dataclass(frozen=True)
