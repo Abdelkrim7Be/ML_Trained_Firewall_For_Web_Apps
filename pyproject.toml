@@ -26,6 +26,8 @@ train = [
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
+    "pytest-timeout>=2.3",
+    "psutil>=6.0",
     "ruff>=0.6",
     "jupyter>=1.1",
     "ipykernel>=6.29",
@@ -56,3 +58,5 @@ target-version = "py311"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+timeout = 90
+timeout_method = "thread"
