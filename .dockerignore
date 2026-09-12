@@ -1,0 +1,17 @@
+.git
+.venv
+data
+reports
+notebooks
+Notebooks_jupyter
+Datasets
+Algo_generation_datasets
+Phase_testing_modèle
+tests
+docs
+*.pdf
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache

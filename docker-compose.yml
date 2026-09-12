@@ -1,0 +1,53 @@
+# The whole demo: the firewall in front of a genuinely vulnerable application.
+#
+#   docker compose up --build
+#
+#   http://localhost:8080        Juice Shop, through the WAF
+#   http://localhost:8080/_waf   the operator console
+#   http://localhost:3000        Juice Shop directly, for comparison
+#
+# Port 3000 is deliberately exposed. A demo that only shows the protected path
+# proves nothing; being able to hit the app both ways is what makes the sqlmap
+# comparison in docs/DEMO.md meaningful.
+
+services:
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: mlwaf-juice-shop
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: unsafe
+    healthcheck:
+      # The image has no shell and no wget, only node itself.
+      test: ["CMD", "/nodejs/bin/node", "-e",
+             "require('http').get('http://127.0.0.1:3000/rest/admin/application-version',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  waf:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mlwaf
+    ports:
+      - "8080:8080"
+    environment:
+      WAF_UPSTREAM: http://juice-shop:3000
+      # Enforcing, because the point of the demo is that attacks are refused.
+      # In a real rollout this starts as "detect" and is promoted once the
+      # review queue is quiet.
+      WAF_MODE: block
+      WAF_FAIL_MODE: open
+    volumes:
+      - waf-data:/app/data
+    depends_on:
+      juice-shop:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  waf-data:

@@ -1,0 +1,63 @@
+[project]
+name = "mlwaf"
+version = "1.0.0"
+description = "ML-based detection of SQL injection and XSS in HTTP requests"
+license = "MIT"
+requires-python = ">=3.11"
+# Kept to what scoring a request actually needs. Anything used only while
+# training or reporting lives in the `train` extra, because it would otherwise
+# be shipped in the serving image: matplotlib, seaborn and pyarrow together add
+# roughly a third of a gigabyte to a container that never draws a chart.
+dependencies = [
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "scikit-learn>=1.5",
+    "lightgbm>=4.5",
+    "scipy>=1.13",
+    "joblib>=1.4",
+]
+
+[project.optional-dependencies]
+train = [
+    "matplotlib>=3.9",
+    "seaborn>=0.13",
+    "pyarrow>=17.0",
+    "requests>=2.32",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-timeout>=2.3",
+    "psutil>=6.0",
+    "ruff>=0.6",
+    "jupyter>=1.1",
+    "ipykernel>=6.29",
+]
+waf = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "httpx>=0.27",
+    "pydantic-settings>=2.5",
+    "prometheus-client>=0.21",
+]
+
+[project.scripts]
+mlwaf = "mlwaf.cli:main"
+mlwaf-proxy = "mlwaf.waf.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mlwaf"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+timeout = 90
+timeout_method = "thread"

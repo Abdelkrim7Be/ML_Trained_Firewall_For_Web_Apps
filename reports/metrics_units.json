@@ -1,0 +1,609 @@
+{
+  "rule_baseline": {
+    "model": "rule_baseline",
+    "macro_f1": 0.3615,
+    "per_class": {
+      "benign": {
+        "precision": 0.9995,
+        "recall": 0.9046,
+        "f1": 0.9497,
+        "support": 17173
+      },
+      "sqli": {
+        "precision": 0.0724,
+        "recall": 0.9801,
+        "f1": 0.1348,
+        "support": 151
+      },
+      "xss": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 262
+      }
+    },
+    "confusion_matrix": [
+      [
+        15534,
+        1639,
+        0
+      ],
+      [
+        3,
+        148,
+        0
+      ],
+      [
+        4,
+        258,
+        0
+      ]
+    ],
+    "binary_pr_auc": 0.1956,
+    "binary_roc_auc": 0.9438,
+    "at_fpr": {
+      "0.001": {
+        "threshold": 1.0,
+        "recall": 0.9831,
+        "precision": 0.1985,
+        "fpr": 0.09544,
+        "tp": 406,
+        "fp": 1639,
+        "fn": 7,
+        "tn": 15534
+      },
+      "0.005": {
+        "threshold": 1.0,
+        "recall": 0.9831,
+        "precision": 0.1985,
+        "fpr": 0.09544,
+        "tp": 406,
+        "fp": 1639,
+        "fn": 7,
+        "tn": 15534
+      },
+      "0.010": {
+        "threshold": 1.0,
+        "recall": 0.9831,
+        "precision": 0.1985,
+        "fpr": 0.09544,
+        "tp": 406,
+        "fp": 1639,
+        "fn": 7,
+        "tn": 15534
+      }
+    },
+    "calibration": {
+      "brier_score": 0.0936,
+      "expected_calibration_error": 0.0936,
+      "buckets": [
+        {
+          "range": [
+            0.0,
+            0.1
+          ],
+          "n": 15541,
+          "mean_score": 0.0,
+          "observed_attack_rate": 0.0005
+        },
+        {
+          "range": [
+            0.9,
+            1.0
+          ],
+          "n": 2045,
+          "mean_score": 1.0,
+          "observed_attack_rate": 0.1985
+        }
+      ]
+    },
+    "fit_seconds": 0.0,
+    "predict_ms_per_request": 0.0017
+  },
+  "logreg": {
+    "model": "logreg",
+    "macro_f1": 0.9825,
+    "per_class": {
+      "benign": {
+        "precision": 0.9995,
+        "recall": 0.9996,
+        "f1": 0.9996,
+        "support": 17173
+      },
+      "sqli": {
+        "precision": 0.973,
+        "recall": 0.9536,
+        "f1": 0.9632,
+        "support": 151
+      },
+      "xss": {
+        "precision": 0.9811,
+        "recall": 0.9885,
+        "f1": 0.9848,
+        "support": 262
+      }
+    },
+    "confusion_matrix": [
+      [
+        17166,
+        4,
+        3
+      ],
+      [
+        5,
+        144,
+        2
+      ],
+      [
+        3,
+        0,
+        259
+      ]
+    ],
+    "binary_pr_auc": 0.9965,
+    "binary_roc_auc": 0.9996,
+    "at_fpr": {
+      "0.001": {
+        "threshold": 0.188775,
+        "recall": 0.9855,
+        "precision": 0.9599,
+        "fpr": 0.00099,
+        "tp": 407,
+        "fp": 17,
+        "fn": 6,
+        "tn": 17156
+      },
+      "0.005": {
+        "threshold": 0.037762,
+        "recall": 0.9976,
+        "precision": 0.829,
+        "fpr": 0.00495,
+        "tp": 412,
+        "fp": 85,
+        "fn": 1,
+        "tn": 17088
+      },
+      "0.010": {
+        "threshold": 0.023872,
+        "recall": 0.9976,
+        "precision": 0.7067,
+        "fpr": 0.00996,
+        "tp": 412,
+        "fp": 171,
+        "fn": 1,
+        "tn": 17002
+      }
+    },
+    "calibration": {
+      "brier_score": 0.0007,
+      "expected_calibration_error": 0.0024,
+      "buckets": [
+        {
+          "range": [
+            0.0,
+            0.1
+          ],
+          "n": 17146,
+          "mean_score": 0.0023,
+          "observed_attack_rate": 0.0003
+        },
+        {
+          "range": [
+            0.1,
+            0.2
+          ],
+          "n": 16,
+          "mean_score": 0.1389,
+          "observed_attack_rate": 0.0625
+        },
+        {
+          "range": [
+            0.2,
+            0.3
+          ],
+          "n": 8,
+          "mean_score": 0.2386,
+          "observed_attack_rate": 0.25
+        },
+        {
+          "range": [
+            0.3,
+            0.4
+          ],
+          "n": 1,
+          "mean_score": 0.3624,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.4,
+            0.5
+          ],
+          "n": 3,
+          "mean_score": 0.4495,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.5,
+            0.6
+          ],
+          "n": 1,
+          "mean_score": 0.5011,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.6,
+            0.7
+          ],
+          "n": 2,
+          "mean_score": 0.6507,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.7,
+            0.8
+          ],
+          "n": 2,
+          "mean_score": 0.7713,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.8,
+            0.9
+          ],
+          "n": 1,
+          "mean_score": 0.8816,
+          "observed_attack_rate": 1.0
+        },
+        {
+          "range": [
+            0.9,
+            1.0
+          ],
+          "n": 406,
+          "mean_score": 0.9982,
+          "observed_attack_rate": 0.9951
+        }
+      ]
+    },
+    "fit_seconds": 6.28,
+    "predict_ms_per_request": 0.0282
+  },
+  "lightgbm": {
+    "model": "lightgbm",
+    "macro_f1": 0.9658,
+    "per_class": {
+      "benign": {
+        "precision": 0.9995,
+        "recall": 0.9986,
+        "f1": 0.9991,
+        "support": 17173
+      },
+      "sqli": {
+        "precision": 0.872,
+        "recall": 0.947,
+        "f1": 0.9079,
+        "support": 151
+      },
+      "xss": {
+        "precision": 0.9849,
+        "recall": 0.9962,
+        "f1": 0.9905,
+        "support": 262
+      }
+    },
+    "confusion_matrix": [
+      [
+        17149,
+        21,
+        3
+      ],
+      [
+        7,
+        143,
+        1
+      ],
+      [
+        1,
+        0,
+        261
+      ]
+    ],
+    "binary_pr_auc": 0.9949,
+    "binary_roc_auc": 0.9988,
+    "at_fpr": {
+      "0.001": {
+        "threshold": 0.676433,
+        "recall": 0.9806,
+        "precision": 0.9902,
+        "fpr": 0.00023,
+        "tp": 405,
+        "fp": 4,
+        "fn": 8,
+        "tn": 17169
+      },
+      "0.005": {
+        "threshold": 2.3e-05,
+        "recall": 0.9952,
+        "precision": 0.8286,
+        "fpr": 0.00495,
+        "tp": 411,
+        "fp": 85,
+        "fn": 2,
+        "tn": 17088
+      },
+      "0.010": {
+        "threshold": 9e-06,
+        "recall": 0.9952,
+        "precision": 0.7062,
+        "fpr": 0.00996,
+        "tp": 411,
+        "fp": 171,
+        "fn": 2,
+        "tn": 17002
+      }
+    },
+    "calibration": {
+      "brier_score": 0.0012,
+      "expected_calibration_error": 0.0014,
+      "buckets": [
+        {
+          "range": [
+            0.0,
+            0.1
+          ],
+          "n": 17149,
+          "mean_score": 0.0,
+          "observed_attack_rate": 0.0003
+        },
+        {
+          "range": [
+            0.2,
+            0.3
+          ],
+          "n": 5,
+          "mean_score": 0.2571,
+          "observed_attack_rate": 0.2
+        },
+        {
+          "range": [
+            0.3,
+            0.4
+          ],
+          "n": 2,
+          "mean_score": 0.3898,
+          "observed_attack_rate": 0.5
+        },
+        {
+          "range": [
+            0.4,
+            0.5
+          ],
+          "n": 1,
+          "mean_score": 0.4084,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.5,
+            0.6
+          ],
+          "n": 1,
+          "mean_score": 0.5938,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.6,
+            0.7
+          ],
+          "n": 19,
+          "mean_score": 0.6702,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.7,
+            0.8
+          ],
+          "n": 1,
+          "mean_score": 0.7116,
+          "observed_attack_rate": 1.0
+        },
+        {
+          "range": [
+            0.8,
+            0.9
+          ],
+          "n": 4,
+          "mean_score": 0.8469,
+          "observed_attack_rate": 1.0
+        },
+        {
+          "range": [
+            0.9,
+            1.0
+          ],
+          "n": 404,
+          "mean_score": 0.9992,
+          "observed_attack_rate": 0.9901
+        }
+      ]
+    },
+    "fit_seconds": 29.3,
+    "predict_ms_per_request": 0.0389
+  },
+  "FINAL_TEST": {
+    "model": "lightgbm",
+    "macro_f1": 0.9626,
+    "per_class": {
+      "benign": {
+        "precision": 0.9992,
+        "recall": 0.9984,
+        "f1": 0.9988,
+        "support": 17188
+      },
+      "sqli": {
+        "precision": 0.8611,
+        "recall": 0.9394,
+        "f1": 0.8986,
+        "support": 165
+      },
+      "xss": {
+        "precision": 0.9904,
+        "recall": 0.9904,
+        "f1": 0.9904,
+        "support": 314
+      }
+    },
+    "confusion_matrix": [
+      [
+        17160,
+        25,
+        3
+      ],
+      [
+        10,
+        155,
+        0
+      ],
+      [
+        3,
+        0,
+        311
+      ]
+    ],
+    "binary_pr_auc": 0.993,
+    "binary_roc_auc": 0.9996,
+    "at_fpr": {
+      "0.001": {
+        "threshold": 0.676433,
+        "recall": 0.9687,
+        "precision": 0.9851,
+        "fpr": 0.00041,
+        "tp": 464,
+        "fp": 7,
+        "fn": 15,
+        "tn": 17181
+      },
+      "0.005": {
+        "threshold": 2.3e-05,
+        "recall": 0.9896,
+        "precision": 0.8464,
+        "fpr": 0.005,
+        "tp": 474,
+        "fp": 86,
+        "fn": 5,
+        "tn": 17102
+      },
+      "0.010": {
+        "threshold": 9e-06,
+        "recall": 0.9896,
+        "precision": 0.7441,
+        "fpr": 0.00948,
+        "tp": 474,
+        "fp": 163,
+        "fn": 5,
+        "tn": 17025
+      }
+    },
+    "calibration": {
+      "brier_score": 0.0016,
+      "expected_calibration_error": 0.0019,
+      "buckets": [
+        {
+          "range": [
+            0.0,
+            0.1
+          ],
+          "n": 17168,
+          "mean_score": 0.0,
+          "observed_attack_rate": 0.0006
+        },
+        {
+          "range": [
+            0.1,
+            0.2
+          ],
+          "n": 3,
+          "mean_score": 0.1492,
+          "observed_attack_rate": 0.6667
+        },
+        {
+          "range": [
+            0.2,
+            0.3
+          ],
+          "n": 1,
+          "mean_score": 0.298,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.3,
+            0.4
+          ],
+          "n": 1,
+          "mean_score": 0.3583,
+          "observed_attack_rate": 1.0
+        },
+        {
+          "range": [
+            0.5,
+            0.6
+          ],
+          "n": 2,
+          "mean_score": 0.56,
+          "observed_attack_rate": 1.0
+        },
+        {
+          "range": [
+            0.6,
+            0.7
+          ],
+          "n": 23,
+          "mean_score": 0.6714,
+          "observed_attack_rate": 0.0
+        },
+        {
+          "range": [
+            0.7,
+            0.8
+          ],
+          "n": 2,
+          "mean_score": 0.7259,
+          "observed_attack_rate": 1.0
+        },
+        {
+          "range": [
+            0.8,
+            0.9
+          ],
+          "n": 1,
+          "mean_score": 0.8777,
+          "observed_attack_rate": 1.0
+        },
+        {
+          "range": [
+            0.9,
+            1.0
+          ],
+          "n": 466,
+          "mean_score": 0.9993,
+          "observed_attack_rate": 0.9893
+        }
+      ]
+    },
+    "generalisation": {
+      "note": "see reports/benchmark_model_units.json"
+    },
+    "leakage_check": {
+      "source_discrimination_accuracy": 0.9998
+    },
+    "operating_threshold": 0.676433
+  }
+}

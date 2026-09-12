@@ -1,0 +1,191 @@
+{
+  "model": "models/model_units.joblib",
+  "threshold": 0.7803910755169169,
+  "false_positives": {
+    "requests": 21167,
+    "flagged": 2,
+    "false_positive_rate": 9.4e-05,
+    "requests_per_second": 575.7,
+    "top_tokens_in_flagged": [
+      [
+        "htbin",
+        2
+      ],
+      [
+        "wais",
+        2
+      ],
+      [
+        "linka",
+        1
+      ],
+      [
+        "lidar",
+        1
+      ]
+    ],
+    "examples": [
+      {
+        "score": 0.9992,
+        "method": "GET",
+        "path": "/htbin/wais.pl",
+        "query": "linka"
+      },
+      {
+        "score": 0.9779,
+        "method": "GET",
+        "path": "/htbin/wais.pl",
+        "query": "LIDAR"
+      }
+    ],
+    "near_misses": 46
+  },
+  "recall": {
+    "sqli": {
+      "payloads": 759,
+      "caught": 714,
+      "recall": 0.9407,
+      "missed_examples": [
+        {
+          "score": 0.0147,
+          "payload": "!"
+        },
+        {
+          "score": 0.7399,
+          "payload": "\"&\""
+        },
+        {
+          "score": 0.2142,
+          "payload": "%2A%28%7C%28objectclass%3D%2A%29%29"
+        },
+        {
+          "score": 0.0253,
+          "payload": "&"
+        },
+        {
+          "score": 0.0001,
+          "payload": "'"
+        },
+        {
+          "score": 0.4087,
+          "payload": "'+sqlvuln"
+        },
+        {
+          "score": 0.0,
+          "payload": "'sqlattempt1"
+        },
+        {
+          "score": 0.0,
+          "payload": "'||UTL_HTTP.REQUEST"
+        },
+        {
+          "score": 0.1534,
+          "payload": "("
+        },
+        {
+          "score": 0.0147,
+          "payload": ")"
+        },
+        {
+          "score": 0.3031,
+          "payload": ")-sleep(9999"
+        },
+        {
+          "score": 0.1355,
+          "payload": "*(|(objectclass=*))"
+        },
+        {
+          "score": 0.0012,
+          "payload": "*/*"
+        },
+        {
+          "score": 0.3907,
+          "payload": "*|"
+        },
+        {
+          "score": 0.7102,
+          "payload": ",@variable"
+        },
+        {
+          "score": 0.0,
+          "payload": "/"
+        },
+        {
+          "score": 0.0,
+          "payload": "//"
+        },
+        {
+          "score": 0.0004,
+          "payload": "//*"
+        },
+        {
+          "score": 0.0,
+          "payload": "0"
+        },
+        {
+          "score": 0.0006,
+          "payload": "1337%20INTO%20OUTFILE%20\u2018xxx\u2019--"
+        },
+        {
+          "score": 0.0016,
+          "payload": "1337)%20INTO%20OUTFILE%20\u2018xxx\u2019--"
+        },
+        {
+          "score": 0.6395,
+          "payload": "2 order by 9999"
+        },
+        {
+          "score": 0.1956,
+          "payload": "456\")%5d|//a|/a%5bcontains(a,\"b"
+        },
+        {
+          "score": 0.7279,
+          "payload": "456')%5d|//a|/a%5bcontains(a,'b"
+        },
+        {
+          "score": 0.0147,
+          "payload": "?"
+        }
+      ]
+    },
+    "xss": {
+      "payloads": 1936,
+      "caught": 1928,
+      "recall": 0.9959,
+      "missed_examples": [
+        {
+          "score": 0.6486,
+          "payload": "Execute(MsgBox(chr(88)&chr(83)&chr(83)))<"
+        },
+        {
+          "score": 0.0147,
+          "payload": "_"
+        },
+        {
+          "score": 0.0052,
+          "payload": "data:text/html;charset=utf-7;base64,Ij48L3RpdGxlPjxzY3JpcHQ+YWxlcnQoMTMzNyk8L3NjcmlwdD4="
+        },
+        {
+          "score": 0.4564,
+          "payload": "eval(a+b+c+d);"
+        },
+        {
+          "score": 0.2445,
+          "payload": "eval(name)"
+        },
+        {
+          "score": 0.0152,
+          "payload": "open(name)"
+        },
+        {
+          "score": 0.0001,
+          "payload": "res://c:\\\\program%20files\\\\adobe\\\\acrobat%207.0\\\\acrobat\\\\acrobat.dll/#2/#210"
+        },
+        {
+          "score": 0.0,
+          "payload": "setTimeout// (name// ,0)"
+        }
+      ]
+    }
+  }
+}

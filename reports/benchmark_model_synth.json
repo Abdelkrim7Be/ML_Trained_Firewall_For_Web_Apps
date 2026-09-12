@@ -1,0 +1,219 @@
+{
+  "model": "models/model_synth.joblib",
+  "threshold": 0.9781228672973817,
+  "false_positives": {
+    "requests": 21167,
+    "flagged": 2,
+    "false_positive_rate": 9.4e-05,
+    "requests_per_second": 752.6,
+    "top_tokens_in_flagged": [
+      [
+        "htbin",
+        2
+      ],
+      [
+        "wais",
+        2
+      ],
+      [
+        "mov",
+        1
+      ],
+      [
+        "avi",
+        1
+      ],
+      [
+        "fuel",
+        1
+      ],
+      [
+        "and",
+        1
+      ],
+      [
+        "vacuum",
+        1
+      ],
+      [
+        "space",
+        1
+      ]
+    ],
+    "examples": [
+      {
+        "score": 0.9969,
+        "method": "GET",
+        "path": "/htbin/wais.pl",
+        "query": "*.mov+or+*.avi"
+      },
+      {
+        "score": 0.9832,
+        "method": "GET",
+        "path": "/htbin/wais.pl",
+        "query": "fuel+AND+vacuum+OR+space"
+      }
+    ],
+    "near_misses": 5
+  },
+  "recall": {
+    "sqli": {
+      "payloads": 759,
+      "caught": 714,
+      "recall": 0.9407,
+      "missed_examples": [
+        {
+          "score": 0.0003,
+          "payload": "!"
+        },
+        {
+          "score": 0.2512,
+          "payload": "\"&\""
+        },
+        {
+          "score": 0.2512,
+          "payload": "\"*\""
+        },
+        {
+          "score": 0.2512,
+          "payload": "\"-\""
+        },
+        {
+          "score": 0.2512,
+          "payload": "\"^\""
+        },
+        {
+          "score": 0.8523,
+          "payload": "%20$(sleep%2050)"
+        },
+        {
+          "score": 0.6217,
+          "payload": "%20'sleep%2050'"
+        },
+        {
+          "score": 0.0003,
+          "payload": "&"
+        },
+        {
+          "score": 0.9091,
+          "payload": "'"
+        },
+        {
+          "score": 0.0,
+          "payload": "'sqlattempt1"
+        },
+        {
+          "score": 0.0,
+          "payload": "'||UTL_HTTP.REQUEST"
+        },
+        {
+          "score": 0.0349,
+          "payload": "("
+        },
+        {
+          "score": 0.0003,
+          "payload": ")"
+        },
+        {
+          "score": 0.6225,
+          "payload": ")-sleep(9999"
+        },
+        {
+          "score": 0.0377,
+          "payload": "*(|(objectclass=*))"
+        },
+        {
+          "score": 0.0089,
+          "payload": "*/*"
+        },
+        {
+          "score": 0.0002,
+          "payload": "/"
+        },
+        {
+          "score": 0.0034,
+          "payload": "//"
+        },
+        {
+          "score": 0.0104,
+          "payload": "//*"
+        },
+        {
+          "score": 0.0,
+          "payload": "0"
+        },
+        {
+          "score": 0.0074,
+          "payload": "031003000270000"
+        },
+        {
+          "score": 0.0003,
+          "payload": "?"
+        },
+        {
+          "score": 0.0014,
+          "payload": "a'"
+        },
+        {
+          "score": 0.0,
+          "payload": "as"
+        },
+        {
+          "score": 0.0,
+          "payload": "asc"
+        }
+      ]
+    },
+    "xss": {
+      "payloads": 1936,
+      "caught": 1925,
+      "recall": 0.9943,
+      "missed_examples": [
+        {
+          "score": 0.868,
+          "payload": "> XSS | Replacive Fuzzers"
+        },
+        {
+          "score": 0.0001,
+          "payload": "_"
+        },
+        {
+          "score": 0.0066,
+          "payload": "b=top,a=/loc/ . source,a+=/ation/ . source,b[a=a] = name"
+        },
+        {
+          "score": 0.0004,
+          "payload": "data:text/html;charset=utf-7;base64,Ij48L3RpdGxlPjxzY3JpcHQ+YWxlcnQoMTMzNyk8L3NjcmlwdD4="
+        },
+        {
+          "score": 0.5274,
+          "payload": "document.__parent__._=alert"
+        },
+        {
+          "score": 0.0614,
+          "payload": "eval(name)"
+        },
+        {
+          "score": 0.9754,
+          "payload": "http://www.simpatie.ro/index.php?page=top_movies&cat=13&p=2 p=2 ??XSS??"
+        },
+        {
+          "score": 0.0,
+          "payload": "open(name)"
+        },
+        {
+          "score": 0.0313,
+          "payload": "res://c:\\\\program%20files\\\\adobe\\\\acrobat%207.0\\\\acrobat\\\\acrobat.dll/#2/#210"
+        },
+        {
+          "score": 0.0012,
+          "payload": "setTimeout// (name// ,0)"
+        },
+        {
+          "score": 0.1877,
+          "payload": "top.__proto__._= alert"
+        }
+      ]
+    }
+  }
+}
